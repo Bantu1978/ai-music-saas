@@ -1,0 +1,18 @@
+{
+  "HomePage": {
+    "title": "Créez des chansons complètes grâce à l'IA avec",
+    "subtitle": "Générez la musique, les paroles et la voix chantée en quelques secondes.",
+    "cta": "Créer une chanson"
+  },
+  "CreatePage": {
+    "title": "Créer une Chanson Complète (Voix + Musique)",
+    "subtitle": "L'IA rédige les paroles, compose la musique et chante votre morceau.",
+    "genreLabel": "Style Musical",
+    "promptLabel": "Sujet de la chanson",
+    "promptPlaceholder": "Ex: Une chanson joyeuse célébrant l'inauguration de BAKUMELO à Douala...",
+    "submitBtn": "Générer la Chanson",
+    "generating": "Composition & Enregistrement vocal en cours...",
+    "downloadBtn": "Télécharger le MP3",
+    "lyricsTitle": "Paroles chantées :"
+  }
+}

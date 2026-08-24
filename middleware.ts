@@ -1,39 +1,18 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+const intlMiddleware = createMiddleware({
+  locales: ['fr', 'en'],
+  defaultLocale: 'fr',
+  localePrefix: 'as-needed'
+});
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  await supabase.auth.getUser()
-
-  return supabaseResponse
+// Exportation explicite sous forme de fonction pour Next.js 16+ / Turbopack
+export default function middleware(request: NextRequest) {
+  return intlMiddleware(request);
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+  // Ignorer les fichiers statiques, les routes API et les dossiers internes de Next.js
+  matcher: ['/', '/(fr|en)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
+};

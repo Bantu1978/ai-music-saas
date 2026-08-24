@@ -1,0 +1,18 @@
+{
+  "HomePage": {
+    "title": "Create full AI songs with",
+    "subtitle": "Generate music, lyrics, and singing vocals in seconds.",
+    "cta": "Create a song"
+  },
+  "CreatePage": {
+    "title": "Create a Full Song (Vocals + Music)",
+    "subtitle": "AI writes the lyrics, composes the music, and sings your track.",
+    "genreLabel": "Musical Style",
+    "promptLabel": "Song Topic / Prompt",
+    "promptPlaceholder": "Ex: An upbeat song celebrating the launch of BAKUMELO in Douala...",
+    "submitBtn": "Generate Song",
+    "generating": "Composing & Recording vocals...",
+    "downloadBtn": "Download MP3",
+    "lyricsTitle": "Lyrics:"
+  }
+}
