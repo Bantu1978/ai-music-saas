@@ -1,14 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthModal from "./AuthModal";
 
-export default function Header({ isAuthOpen, setIsAuthOpen }: { isAuthOpen: boolean; setIsAuthOpen: (open: boolean) => void }) {
+interface HeaderProps {
+  isAuthOpen?: boolean;
+  setIsAuthOpen?: (open: boolean) => void;
+}
+
+export default function Header({ isAuthOpen: externalAuthOpen, setIsAuthOpen: externalSetAuthOpen }: HeaderProps) {
+  const [internalAuthOpen, setInternalAuthOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; credits: number } | null>(null);
 
   const supabase = createClient();
+  const pathname = usePathname();
+  const currentLocale = pathname?.startsWith("/fr") ? "fr" : "en";
+
+  // Utilise la propriété externe si elle existe, sinon utilise l'état interne
+  const isAuthOpen = externalAuthOpen !== undefined ? externalAuthOpen : internalAuthOpen;
+  const setIsAuthOpen = externalSetAuthOpen || setInternalAuthOpen;
 
   useEffect(() => {
     const getUserProfile = async () => {
