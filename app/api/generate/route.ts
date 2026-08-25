@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { adjustCredits } from "@/lib/credits";
+import { SONG_STATUS } from "@/lib/songStatus";
 
 const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
 const MAX_PROMPT_LENGTH = 2000;
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
         mood: safeMood,
         prompt_used: fullPrompt,
         lyrics: safeLyrics,
-        status: "pending",
+        status: SONG_STATUS.pending,
       })
       .select()
       .single();
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Échec côté Suno : on rembourse le crédit et on marque la chanson en échec.
     if (!taskId) {
-      await admin.from("songs").update({ status: "failed" }).eq("id", song.id);
+      await admin.from("songs").update({ status: SONG_STATUS.failed }).eq("id", song.id);
       await adjustCredits(admin, userId, 1);
       return NextResponse.json({ error: sunoError }, { status: 502 });
     }
