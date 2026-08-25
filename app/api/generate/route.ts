@@ -65,6 +65,15 @@ export async function POST(req: NextRequest) {
       if (reservation.reason === "insufficient") {
         return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
       }
+      if (reservation.reason === "error") {
+        // Refus de la base (trigger, contrainte, RLS) : à ne pas maquiller en
+        // problème de concurrence, le message est nécessaire au diagnostic.
+        console.error("[generate] débit refusé par la base :", reservation.message);
+        return NextResponse.json(
+          { error: `Débit du crédit refusé : ${reservation.message}` },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         { error: "Génération déjà en cours, veuillez réessayer." },
         { status: 409 }
