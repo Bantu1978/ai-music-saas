@@ -4,17 +4,24 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 
 const GENRES = [
+  // Styles Africains
   "Afrobeats",
+  "Amapiano",
+  "Makossa",
+  "Coupé-Décalé",
+  "Bikutsi",
+  "Zouglou",
+  "Highlife",
+  "Rumba Congolaise",
+  "Afro-Pop",
+  "Gospel Africain",
+  // Styles Internationaux
   "Pop",
   "Hip-Hop / Rap",
   "R&B",
   "Synthwave / Electro",
   "Rock",
-  "Gospel",
-  "Jazz",
-  "Lo-Fi",
-  "Acoustique / Folk",
-  "Cinématique",
+  "Zouk",
   "Reggae / Dancehall",
 ];
 
@@ -25,13 +32,6 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,50 +88,47 @@ export default function GeneratePage() {
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
       <Header />
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-10 flex flex-col justify-center">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col justify-center">
         <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl font-extrabold tracking-tight">Studio de Création</h1>
-          <p className="mt-1 text-zinc-400 text-sm">Configurez les paramètres ci-dessous pour composer votre chanson.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Studio de Création Musicale</h1>
+          <p className="mt-1 text-zinc-400 text-sm">Les paroles seront composées automatiquement dans la langue de votre texte.</p>
         </div>
 
         {error && (
-          <div className="w-full mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="w-full mb-6 p-4 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleGenerate} className="w-full space-y-6 bg-zinc-900/90 p-8 rounded-2xl border-2 border-zinc-800 shadow-2xl">
-          {/* Champ Prompt */}
+        <form onSubmit={handleGenerate} className="w-full space-y-6 bg-zinc-900/90 p-6 sm:p-8 rounded-2xl border-2 border-zinc-800 shadow-2xl">
           <div>
             <label className="block text-sm font-semibold text-zinc-200 mb-2">
-              Description / Idée de la chanson <span className="text-indigo-400">*</span>
+              Saisissez l'idée de votre chanson (dans la langue souhaitée) <span className="text-indigo-400">*</span>
             </label>
             <textarea
               required
               rows={4}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ex: Une chanson joyeuse sur un voyage d'été sous les cocotiers..."
+              placeholder="Ex: Une chanson d'amour rythmée en Makossa célébrant un mariage..."
               className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white placeholder-zinc-500 outline-none transition"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Champ Titre */}
             <div>
-              <label className="block text-sm font-semibold text-zinc-200 mb-2">Titre de la chanson</label>
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">Titre du morceau</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Summer Vibes"
+                placeholder="Ex: Ndolo"
                 className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white placeholder-zinc-500 outline-none transition"
               />
             </div>
 
-            {/* Menu Déroulant Style / Genre */}
             <div>
-              <label className="block text-sm font-semibold text-zinc-200 mb-2">Style musical / Genre</label>
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">Style Musical / Genre</label>
               <select
                 value={style}
                 onChange={(e) => setStyle(e.target.value)}

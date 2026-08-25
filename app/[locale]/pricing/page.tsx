@@ -4,11 +4,24 @@ import { useState } from "react";
 import Header from "@/components/Header";
 
 const COUNTRIES = [
+  // Zone Franc CFA (XAF / XOF)
   { code: "CM", name: "Cameroun", currency: "XAF", rate: 1, symbol: "FCFA" },
   { code: "CI", name: "Côte d'Ivoire", currency: "XOF", rate: 1, symbol: "FCFA" },
   { code: "SN", name: "Sénégal", currency: "XOF", rate: 1, symbol: "FCFA" },
+  { code: "GA", name: "Gabon", currency: "XAF", rate: 1, symbol: "FCFA" },
+  { code: "CG", name: "Congo-Brazzaville", currency: "XAF", rate: 1, symbol: "FCFA" },
+  { code: "CD", name: "RDC (Congo)", currency: "USD", rate: 0.0016, symbol: "$" },
+  { code: "TG", name: "Togo", currency: "XOF", rate: 1, symbol: "FCFA" },
+  { code: "BJ", name: "Bénin", currency: "XOF", rate: 1, symbol: "FCFA" },
+  { code: "BF", name: "Burkina Faso", currency: "XOF", rate: 1, symbol: "FCFA" },
+  // Autres pays Africains
+  { code: "NG", name: "Nigéria", currency: "NGN", rate: 2.5, symbol: "NGN" },
+  { code: "GH", name: "Ghana", currency: "GHS", rate: 0.025, symbol: "GHS" },
+  { code: "KE", name: "Kenya", currency: "KES", rate: 0.21, symbol: "KES" },
+  { code: "MA", name: "Maroc", currency: "MAD", rate: 0.016, symbol: "DH" },
+  // Europe & International
   { code: "FR", name: "France / Europe", currency: "EUR", rate: 0.0015, symbol: "€" },
-  { code: "US", name: "États-Unis", currency: "USD", rate: 0.0016, symbol: "$" },
+  { code: "US", name: "États-Unis / Canada", currency: "USD", rate: 0.0016, symbol: "$" },
 ];
 
 const PACKS = [
@@ -38,7 +51,6 @@ export default function PricingPage() {
           <p className="mt-2 text-zinc-400 text-sm sm:text-base">1 crédit d'essai gratuit est déjà disponible sur votre compte à l'inscription.</p>
         </div>
 
-        {/* Sélecteur de Pays */}
         <div className="max-w-xs mx-auto mb-10 text-center">
           <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Sélectionnez votre Pays</label>
           <select
@@ -54,7 +66,6 @@ export default function PricingPage() {
           </select>
         </div>
 
-        {/* Grille des Packs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {PACKS.map((pack, idx) => (
             <div
