@@ -13,6 +13,10 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Ignorer les fichiers statiques, les routes API et les dossiers internes de Next.js
-  matcher: ['/', '/(fr|en)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: [
+    /*
+     * Ignorer les fichiers statiques, les images et les routes d'authentification
+     */
+    '/((?!_next/static|_next/image|favicon.ico|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };
