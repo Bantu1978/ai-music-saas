@@ -1,9 +1,12 @@
 import "../globals.css";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
-import { routing } from "../../src/i18n/routing";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { routing } from "@/src/i18n/routing";
+import SiteHeader from "@/components/SiteHeader";
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
 export default async function LocaleLayout({
   children,
@@ -14,21 +17,16 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
 
-  if (!routing.locales.includes(locale as any)) {
+  if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
 
-  const messages = await getMessages();
-
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className="bg-slate-950 text-slate-100 min-h-screen">
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <header className="border-b border-slate-800 p-4 flex justify-between items-center max-w-6xl mx-auto">
-            <span className="font-bold text-xl text-indigo-400">BAKUMELO</span>
-            <LanguageSwitcher />
-          </header>
-          <main>{children}</main>
+      <body className="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+        <NextIntlClientProvider>
+          <SiteHeader />
+          <main className="flex-1 flex flex-col">{children}</main>
         </NextIntlClientProvider>
       </body>
     </html>
