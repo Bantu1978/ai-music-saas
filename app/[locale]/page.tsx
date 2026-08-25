@@ -7,14 +7,25 @@ import { dictionary } from "@/lib/dictionary";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = use(params);
+  const { locale: urlLocale } = use(params);
+
+  // État local de langue pour un changement 0ms sans rechargement de page
+  const [currentLocale, setCurrentLocale] = useState<"fr" | "en">(
+    urlLocale === "en" ? "en" : "fr"
+  );
+  
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; credits: number } | null>(null);
 
   const supabase = createClient();
-  const currentLocale = locale === "en" ? "en" : "fr";
   const dict = dictionary[currentLocale];
+
+  // Basculement instantané en mémoire + mise à jour discrète de l'URL
+  const toggleLocale = (newLocale: "fr" | "en") => {
+    setCurrentLocale(newLocale);
+    window.history.replaceState(null, "", `/${newLocale}`);
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,8 +61,26 @@ export default function LandingPage({ params }: { params: Promise<{ locale: stri
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col justify-center items-center relative">
-      {/* BARRE DE STATUT UTILISATEUR (Visible en haut à droite) */}
+      
+      {/* BARRE D'ACTION (Sélecteur FR/EN instantané + Statut Utilisateur) */}
       <div className="absolute top-6 right-6 z-30 flex items-center gap-3">
+        {/* Sélecteur FR/EN 0ms */}
+        <div className="flex border-2 border-zinc-700 rounded-xl overflow-hidden bg-zinc-900 text-xs font-bold">
+          <button
+            onClick={() => toggleLocale("fr")}
+            className={`px-3 py-1.5 transition ${currentLocale === "fr" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+          >
+            FR
+          </button>
+          <button
+            onClick={() => toggleLocale("en")}
+            className={`px-3 py-1.5 transition ${currentLocale === "en" ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"}`}
+          >
+            EN
+          </button>
+        </div>
+
+        {/* Bloc Profil & Déconnexion */}
         {user ? (
           <div className="flex items-center gap-3 bg-zinc-900 border-2 border-zinc-800 px-4 py-2 rounded-2xl shadow-xl">
             <span className="text-xs font-bold text-zinc-300 hidden sm:inline">
