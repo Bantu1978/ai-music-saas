@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Header from "@/components/Header";
+import { useState } from "react";
+import UserNavbar from "@/components/UserNavbar";
 
 const GENRES = [
-  // Styles Africains
   "Afrobeats",
   "Amapiano",
   "Makossa",
@@ -15,7 +14,6 @@ const GENRES = [
   "Rumba Congolaise",
   "Afro-Pop",
   "Gospel Africain",
-  // Styles Internationaux
   "Pop",
   "Hip-Hop / Rap",
   "R&B",
@@ -86,7 +84,8 @@ export default function GeneratePage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      <Header />
+      {/* Barre d'état utilisateur et boutons FR / EN sur le Studio */}
+      <UserNavbar />
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col justify-center">
         <div className="mb-8 text-center sm:text-left">
