@@ -1,18 +1,77 @@
 {
-  "HomePage": {
-    "title": "Create full AI songs with",
-    "subtitle": "Generate music, lyrics, and singing vocals in seconds.",
-    "cta": "Create a song"
+  "Nav": {
+    "brand": "BAKUMELO",
+    "studio": "Studio",
+    "dashboard": "My tracks",
+    "pricing": "Pricing",
+    "admin": "Admin",
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "credits": "credits"
   },
-  "CreatePage": {
-    "title": "Create a Full Song (Vocals + Music)",
-    "subtitle": "AI writes the lyrics, composes the music, and sings your track.",
-    "genreLabel": "Musical Style",
-    "promptLabel": "Song Topic / Prompt",
-    "promptPlaceholder": "Ex: An upbeat song celebrating the launch of BAKUMELO in Douala...",
-    "submitBtn": "Generate Song",
-    "generating": "Composing & Recording vocals...",
-    "downloadBtn": "Download MP3",
-    "lyricsTitle": "Lyrics:"
+  "Auth": {
+    "title": "Sign in to BAKUMELO",
+    "subtitle": "Sign in to claim your free credit and start composing.",
+    "google": "Continue with Google",
+    "close": "Close"
+  },
+  "HomePage": {
+    "badge": "🎁 1 free generation credit on signup!",
+    "title": "Create Afro & International Music with AI",
+    "subtitle": "Afrobeats, Amapiano, Makossa, Coupé-Décalé, Pop, R&B... Generate your songs in the language of your choice.",
+    "ctaSignedOut": "Try now with 1 free credit",
+    "ctaSignedIn": "Create a track",
+    "ctaPricing": "View pricing"
+  },
+  "Studio": {
+    "title": "Music Creation Studio",
+    "subtitle": "Lyrics are written automatically in the language of your prompt.",
+    "promptLabel": "Describe your song idea (in the language you want)",
+    "promptPlaceholder": "Ex: An upbeat Makossa love song celebrating a wedding...",
+    "titleLabel": "Track title",
+    "titlePlaceholder": "Ex: Ndolo",
+    "genreLabel": "Musical style / Genre",
+    "submit": "Generate track (1 credit)",
+    "generating": "Composing & recording vocals",
+    "successTitle": "🎉 Track generated successfully!",
+    "lyricsTitle": "Lyrics:",
+    "download": "Download MP3",
+    "signedOut": "Sign in to compose your track.",
+    "timeout": "Timed out. Please try again.",
+    "genericError": "An error occurred during generation."
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Manage your tracks and your credits.",
+    "statSongs": "Tracks created",
+    "statCredits": "Credits left",
+    "statPending": "Generations running",
+    "history": "Your latest generations",
+    "empty": "No track generated yet.",
+    "create": "+ Create a song",
+    "signedOut": "Sign in to see your tracks."
+  },
+  "Pricing": {
+    "title": "Top up your credits",
+    "subtitle": "1 free trial credit is already available on your account after signing up.",
+    "countryLabel": "Select your country",
+    "recommended": "Recommended",
+    "creditsSuffix": "generation credits",
+    "buy": "Buy now",
+    "packDiscovery": "Discovery Pack",
+    "packCreator": "Creator Pack",
+    "packPro": "Pro Pack"
+  },
+  "Admin": {
+    "title": "Administration Console",
+    "loading": "Loading data...",
+    "usersSection": "Users & credits",
+    "colUser": "Email / Name",
+    "colCredits": "Credits",
+    "colAction": "Action",
+    "addCredits": "+ Add credits",
+    "addCreditsPrompt": "How many credits do you want to add?",
+    "songsSection": "Latest generations",
+    "forbidden": "Administrators only."
   }
 }

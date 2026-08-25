@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Header from "@/components/Header";
+import { useTranslations } from "next-intl";
 
 const COUNTRIES = [
   // Zone Franc CFA (XAF / XOF)
@@ -25,12 +25,13 @@ const COUNTRIES = [
 ];
 
 const PACKS = [
-  { credits: 3, baseFcfa: 2990, label: "Pack Découverte", popular: false },
-  { credits: 10, baseFcfa: 8900, label: "Pack Créateur", popular: true },
-  { credits: 25, baseFcfa: 19900, label: "Pack Pro", popular: false },
-];
+  { credits: 3, baseFcfa: 2990, labelKey: "packDiscovery", popular: false },
+  { credits: 10, baseFcfa: 8900, labelKey: "packCreator", popular: true },
+  { credits: 25, baseFcfa: 19900, labelKey: "packPro", popular: false },
+] as const;
 
 export default function PricingPage() {
+  const t = useTranslations("Pricing");
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
 
   const formatPrice = (baseFcfa: number) => {
@@ -42,61 +43,69 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      <Header />
+    <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 py-12">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl sm:text-5xl font-extrabold">{t("title")}</h1>
+        <p className="mt-2 text-zinc-400 text-sm sm:text-base">{t("subtitle")}</p>
+      </div>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-8 py-12">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-5xl font-extrabold">Recharger vos Crédits</h1>
-          <p className="mt-2 text-zinc-400 text-sm sm:text-base">1 crédit d'essai gratuit est déjà disponible sur votre compte à l'inscription.</p>
-        </div>
-
-        <div className="max-w-xs mx-auto mb-10 text-center">
-          <label className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Sélectionnez votre Pays</label>
-          <select
-            value={selectedCountry.code}
-            onChange={(e) => setSelectedCountry(COUNTRIES.find((c) => c.code === e.target.value) || COUNTRIES[0])}
-            className="w-full bg-zinc-900 border-2 border-zinc-700 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-indigo-500 cursor-pointer"
-          >
-            {COUNTRIES.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.name} ({country.symbol})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PACKS.map((pack, idx) => (
-            <div
-              key={idx}
-              className={`rounded-2xl bg-zinc-900 p-8 border-2 flex flex-col justify-between relative ${
-                pack.popular ? "border-indigo-500 shadow-xl shadow-indigo-600/20" : "border-zinc-800"
-              }`}
-            >
-              {pack.popular && (
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-black uppercase px-3 py-1 rounded-full">
-                  Recommandé
-                </span>
-              )}
-
-              <div>
-                <h3 className="text-xl font-bold">{pack.label}</h3>
-                <div className="my-6">
-                  <span className="text-3xl sm:text-4xl font-black">{formatPrice(pack.baseFcfa)}</span>
-                </div>
-                <div className="border-t border-zinc-800 pt-4 text-base font-bold text-indigo-400 mb-6">
-                  🎵 {pack.credits} Crédits de génération
-                </div>
-              </div>
-
-              <button className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/25">
-                Acheter maintenant
-              </button>
-            </div>
+      <div className="max-w-xs mx-auto mb-10 text-center">
+        <label
+          htmlFor="country"
+          className="block text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider"
+        >
+          {t("countryLabel")}
+        </label>
+        <select
+          id="country"
+          value={selectedCountry.code}
+          onChange={(e) =>
+            setSelectedCountry(
+              COUNTRIES.find((c) => c.code === e.target.value) || COUNTRIES[0]
+            )
+          }
+          className="w-full bg-zinc-900 border-2 border-zinc-700 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-indigo-500 cursor-pointer"
+        >
+          {COUNTRIES.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.name} ({country.symbol})
+            </option>
           ))}
-        </div>
-      </main>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {PACKS.map((pack) => (
+          <div
+            key={pack.labelKey}
+            className={`rounded-2xl bg-zinc-900 p-8 border-2 flex flex-col justify-between relative ${
+              pack.popular ? "border-indigo-500 shadow-xl shadow-indigo-600/20" : "border-zinc-800"
+            }`}
+          >
+            {pack.popular && (
+              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-black uppercase px-3 py-1 rounded-full">
+                {t("recommended")}
+              </span>
+            )}
+
+            <div>
+              <h2 className="text-xl font-bold">{t(pack.labelKey)}</h2>
+              <div className="my-6">
+                <span className="text-3xl sm:text-4xl font-black">
+                  {formatPrice(pack.baseFcfa)}
+                </span>
+              </div>
+              <div className="border-t border-zinc-800 pt-4 text-base font-bold text-indigo-400 mb-6">
+                🎵 {pack.credits} {t("creditsSuffix")}
+              </div>
+            </div>
+
+            <button className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/25">
+              {t("buy")}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

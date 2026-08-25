@@ -1,85 +1,118 @@
 import { NextRequest, NextResponse } from "next/server";
-import https from "https";
+import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { createClient } from "@/lib/supabase/server";
 
-const agent = new https.Agent({ keepAlive: true });
-
+/**
+ * Suivi d'une génération Suno.
+ *
+ * Remplace l'ancien couple /api/generate/status + /api/custom_generate, qui
+ * interrogeaient deux endpoints différents (dont un inexistant) et divergeaient
+ * sur la forme de réponse.
+ *
+ * `songId` est optionnel : quand il est fourni, le résultat est aussi persisté
+ * sur la ligne `songs` correspondante, à condition qu'elle appartienne bien à
+ * l'utilisateur connecté.
+ */
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const taskId = searchParams.get("taskId");
+  const songId = searchParams.get("songId");
+
+  if (!taskId) {
+    return NextResponse.json({ error: "taskId requis" }, { status: 400 });
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Vous devez être connecté." }, { status: 401 });
+  }
+
+  const apiKey = process.env.SUNO_API_KEY || process.env.GOAPI_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "Clé API manquante" }, { status: 500 });
+  }
+
   try {
-    const { searchParams } = new URL(req.url);
-    const taskId = searchParams.get("taskId");
-
-    if (!taskId) {
-      return NextResponse.json({ error: "taskId requis" }, { status: 400 });
-    }
-
-    const apiKey = process.env.SUNO_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Clé API manquante" }, { status: 500 });
-    }
-
-    const fetchRes = await fetch(
-      `https://api.sunoapi.org/api/v1/generate/record-info?taskId=${taskId}`,
+    const res = await fetch(
+      `https://api.sunoapi.org/api/v1/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
       {
         headers: { Authorization: `Bearer ${apiKey.trim()}` },
-        // @ts-ignore
-        agent,
+        signal: AbortSignal.timeout(20_000),
       }
     );
 
-    const rawText = await fetchRes.text();
-    let fetchData: any;
-
+    const raw = await res.text();
+    let payload: any = null;
     try {
-      fetchData = JSON.parse(rawText);
-    } catch (e) {
+      payload = JSON.parse(raw);
+    } catch {
+      // Réponse non-JSON : traitée comme un état transitoire.
       return NextResponse.json({ status: "PENDING" });
     }
 
-    const taskData = fetchData.data || {};
+    const taskData = payload?.data ?? {};
     const status = taskData.status;
 
     if (status === "SUCCESS" && taskData.response) {
       const sunoData = taskData.response.sunoData || taskData.response;
-      const clipsArray = Array.isArray(sunoData) ? sunoData : Object.values(sunoData);
+      const clips = Array.isArray(sunoData) ? sunoData : Object.values(sunoData);
+      const clip = clips[0] as any;
 
-      if (clipsArray.length > 0) {
-        const firstClip = clipsArray[0] as any;
-        const audioUrl =
-          firstClip?.audioUrl ||
-          firstClip?.audio_url ||
-          firstClip?.stream_url ||
-          firstClip?.cdn_url;
+      const audioUrl =
+        clip?.audioUrl || clip?.audio_url || clip?.stream_url || clip?.cdn_url;
 
-        const lyrics =
-          firstClip?.metadata?.prompt ||
-          firstClip?.lyric ||
-          firstClip?.prompt ||
-          "Paroles générées";
+      if (audioUrl) {
+        const lyrics = clip?.metadata?.prompt || clip?.lyric || clip?.prompt || null;
+        const title = clip?.title || null;
 
-        const title = firstClip?.title || "Chanson BAKUMELO";
+        if (songId) {
+          const { error } = await getSupabaseAdmin()
+            .from("songs")
+            .update({
+              audio_url: audioUrl,
+              status: "success",
+              ...(lyrics ? { lyrics } : {}),
+              ...(title ? { title } : {}),
+            })
+            .eq("id", songId)
+            .eq("user_id", user.id);
 
-        if (audioUrl) {
-          return NextResponse.json({
-            status: "SUCCESS",
-            song: {
-              id: taskId,
-              audioUrl,
-              lyrics,
-              title,
-            },
-          });
+          if (error) {
+            console.warn("[status] persistance échouée :", error.message);
+          }
         }
+
+        return NextResponse.json({
+          status: "SUCCESS",
+          song: { id: taskId, audioUrl, lyrics, title },
+        });
       }
-    } else if (status === "FAILED" || status === "CREATE_TASK_FAILED") {
+    }
+
+    if (status === "FAILED" || status === "CREATE_TASK_FAILED") {
+      if (songId) {
+        await getSupabaseAdmin()
+          .from("songs")
+          .update({ status: "failed" })
+          .eq("id", songId)
+          .eq("user_id", user.id);
+      }
+
       return NextResponse.json({
         status: "FAILED",
         error: taskData.errorMessage || "La génération a échoué chez Suno.",
       });
     }
 
-    // Statut toujours PENDING / PROCESSING
     return NextResponse.json({ status: status || "PENDING" });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Incident réseau transitoire : on reste en PENDING, le client réessaiera
+    // jusqu'à sa limite de tentatives plutôt que d'échouer au premier hoquet.
+    console.warn("[status]", error instanceof Error ? error.message : error);
     return NextResponse.json({ status: "PENDING" });
   }
 }

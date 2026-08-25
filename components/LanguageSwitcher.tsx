@@ -1,49 +1,44 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
+import { useTransition } from "react";
+import { usePathname, useRouter } from "@/src/i18n/navigation";
+import { routing, type Locale } from "@/src/i18n/routing";
+
+const LABELS: Record<Locale, string> = { fr: "FR", en: "EN" };
 
 export function LanguageSwitcher() {
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
-  const switchLanguage = (newLocale: string) => {
-    if (!pathname) return;
-    const segments = pathname.split("/");
-    
-    // Remplacement ou ajout du préfixe de langue dans l'URL
-    if (segments[1] === "fr" || segments[1] === "en") {
-      segments[1] = newLocale;
-    } else {
-      segments.splice(1, 0, newLocale);
-    }
-    
-    router.push(segments.join("/") || "/");
+  const switchTo = (next: Locale) => {
+    if (next === locale) return;
+    startTransition(() => {
+      // pathname est déjà dépourvu du préfixe de langue : next-intl le recolle.
+      router.replace(pathname, { locale: next });
+    });
   };
 
-  const currentLocale = pathname.startsWith("/en") ? "en" : "fr";
-
   return (
-    <div className="flex gap-2 bg-slate-800 p-1 rounded-lg text-xs font-semibold w-fit">
-      <button
-        onClick={() => switchLanguage("fr")}
-        className={`px-3 py-1 rounded transition ${
-          currentLocale === "fr"
-            ? "bg-indigo-600 text-white"
-            : "hover:bg-slate-700 text-slate-300"
-        }`}
-      >
-        FR 🇫🇷
-      </button>
-      <button
-        onClick={() => switchLanguage("en")}
-        className={`px-3 py-1 rounded transition ${
-          currentLocale === "en"
-            ? "bg-indigo-600 text-white"
-            : "hover:bg-slate-700 text-slate-300"
-        }`}
-      >
-        EN 🇬🇧
-      </button>
+    <div className="flex border-2 border-zinc-700 rounded-xl overflow-hidden bg-zinc-900 text-xs font-bold">
+      {routing.locales.map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => switchTo(l)}
+          disabled={isPending}
+          aria-current={l === locale ? "true" : undefined}
+          className={`px-3 py-1.5 transition disabled:opacity-60 ${
+            l === locale
+              ? "bg-indigo-600 text-white"
+              : "text-zinc-400 hover:text-white"
+          }`}
+        >
+          {LABELS[l]}
+        </button>
+      ))}
     </div>
   );
 }

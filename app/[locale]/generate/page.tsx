@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import UserNavbar from "@/components/UserNavbar";
+import { useTranslations } from "next-intl";
 
 const GENRES = [
   "Afrobeats",
@@ -23,147 +23,185 @@ const GENRES = [
   "Reggae / Dancehall",
 ];
 
-export default function GeneratePage() {
+const POLL_INTERVAL_MS = 4000;
+const MAX_ATTEMPTS = 75; // 75 x 4s = 300s
+
+interface SongResult {
+  songId: string;
+  audioUrl: string;
+  title?: string;
+  lyrics?: string;
+}
+
+export default function StudioPage() {
+  const t = useTranslations("Studio");
+
   const [prompt, setPrompt] = useState("");
-  const [style, setStyle] = useState("Afrobeats");
+  const [genre, setGenre] = useState("Afrobeats");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [song, setSong] = useState<SongResult | null>(null);
 
-  const handleGenerate = async (e: React.FormEvent) => {
+  const pollStatus = async (taskId: string, songId: string) => {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      setStatusText(`${t("generating")} (${attempt * (POLL_INTERVAL_MS / 1000)}s)`);
+
+      const res = await fetch(
+        `/api/generate/status?taskId=${encodeURIComponent(taskId)}&songId=${encodeURIComponent(songId)}`
+      );
+      const data = await res.json();
+
+      if (data.status === "SUCCESS" && data.song?.audioUrl) {
+        setSong({ songId, ...data.song });
+        setLoading(false);
+        return;
+      }
+      if (data.status === "FAILED") {
+        throw new Error(data.error || t("genericError"));
+      }
+    }
+
+    throw new Error(t("timeout"));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!prompt.trim()) return;
+
     setLoading(true);
     setError(null);
-    setAudioUrl(null);
+    setSong(null);
+    setStatusText(t("generating"));
 
     try {
-      const response = await fetch("/api/generate", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, genre: style, title }),
+        body: JSON.stringify({ prompt, genre, title }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la génération");
+      if (!res.ok) {
+        throw new Error(data.error || `Error ${res.status}`);
       }
 
-      if (data.taskId && data.songId) {
-        pollStatus(data.taskId, data.songId);
-      }
-    } catch (err: any) {
-      setError(err.message);
+      await pollStatus(data.taskId, data.songId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("genericError"));
       setLoading(false);
     }
   };
 
-  const pollStatus = (taskId: string, songId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/custom_generate?taskId=${taskId}&songId=${songId}`);
-        const statusData = await res.json();
-
-        if (statusData.status === "SUCCESS" || statusData.status === "complete") {
-          clearInterval(interval);
-          setAudioUrl(statusData.data?.audio_url || statusData.audio_url);
-          setLoading(false);
-        } else if (statusData.status === "FAILED") {
-          clearInterval(interval);
-          setError("La génération de la chanson a échoué.");
-          setLoading(false);
-        }
-      } catch (e) {
-        clearInterval(interval);
-        setError("Erreur lors de la vérification du statut.");
-        setLoading(false);
-      }
-    }, 5000);
-  };
-
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
-      {/* Barre d'état utilisateur et boutons FR / EN sur le Studio */}
-      <UserNavbar />
+    <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col justify-center">
+      <div className="mb-8 text-center sm:text-left">
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("title")}</h1>
+        <p className="mt-1 text-zinc-400 text-sm">{t("subtitle")}</p>
+      </div>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col justify-center">
-        <div className="mb-8 text-center sm:text-left">
-          <h1 className="text-3xl font-extrabold tracking-tight">Studio de Création Musicale</h1>
-          <p className="mt-1 text-zinc-400 text-sm">Les paroles seront composées automatiquement dans la langue de votre texte.</p>
+      {error && (
+        <div className="w-full mb-6 p-4 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="w-full space-y-6 bg-zinc-900/90 p-6 sm:p-8 rounded-2xl border-2 border-zinc-800 shadow-2xl"
+      >
+        <div>
+          <label htmlFor="prompt" className="block text-sm font-semibold text-zinc-200 mb-2">
+            {t("promptLabel")} <span className="text-indigo-400">*</span>
+          </label>
+          <textarea
+            id="prompt"
+            required
+            rows={4}
+            maxLength={2000}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={t("promptPlaceholder")}
+            className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white placeholder-zinc-500 outline-none transition"
+          />
         </div>
 
-        {error && (
-          <div className="w-full mb-6 p-4 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleGenerate} className="w-full space-y-6 bg-zinc-900/90 p-6 sm:p-8 rounded-2xl border-2 border-zinc-800 shadow-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-zinc-200 mb-2">
-              Saisissez l'idée de votre chanson (dans la langue souhaitée) <span className="text-indigo-400">*</span>
+            <label htmlFor="title" className="block text-sm font-semibold text-zinc-200 mb-2">
+              {t("titleLabel")}
             </label>
-            <textarea
-              required
-              rows={4}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ex: Une chanson d'amour rythmée en Makossa célébrant un mariage..."
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("titlePlaceholder")}
               className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white placeholder-zinc-500 outline-none transition"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-zinc-200 mb-2">Titre du morceau</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ex: Ndolo"
-                className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white placeholder-zinc-500 outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-zinc-200 mb-2">Style Musical / Genre</label>
-              <select
-                value={style}
-                onChange={(e) => setStyle(e.target.value)}
-                className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
-              >
-                {GENRES.map((g) => (
-                  <option key={g} value={g} className="bg-zinc-900 text-white">
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label htmlFor="genre" className="block text-sm font-semibold text-zinc-200 mb-2">
+              {t("genreLabel")}
+            </label>
+            <select
+              id="genre"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
+            >
+              {GENRES.map((g) => (
+                <option key={g} value={g} className="bg-zinc-900 text-white">
+                  {g}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 text-base"
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 text-base"
+        >
+          {loading ? (
+            <>
+              <span className="animate-spin">⏳</span> {statusText}
+            </>
+          ) : (
+            t("submit")
+          )}
+        </button>
+      </form>
+
+      {song && (
+        <div className="w-full mt-8 p-6 bg-zinc-900 rounded-2xl border-2 border-indigo-500/40 shadow-xl">
+          <h2 className="text-lg font-bold mb-1 text-indigo-400">{t("successTitle")}</h2>
+          {song.title && <p className="text-sm font-semibold text-zinc-200 mb-4">{song.title}</p>}
+
+          <audio controls src={song.audioUrl} className="w-full rounded-lg mb-6" />
+
+          {song.lyrics && (
+            <div className="bg-zinc-950 p-4 rounded-lg mb-6 border border-zinc-800">
+              <h3 className="text-sm font-semibold text-zinc-300 mb-2">{t("lyricsTitle")}</h3>
+              <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">
+                {song.lyrics}
+              </pre>
+            </div>
+          )}
+
+          <a
+            href={`/api/download?songId=${encodeURIComponent(song.songId)}`}
+            className="inline-block w-full sm:w-auto text-center bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition"
           >
-            {loading ? (
-              <>
-                <span className="animate-spin">⏳</span> Composition en cours...
-              </>
-            ) : (
-              "Générer le morceau (1 crédit)"
-            )}
-          </button>
-        </form>
-
-        {audioUrl && (
-          <div className="w-full mt-8 p-6 bg-zinc-900 rounded-2xl border-2 border-indigo-500/40 text-center shadow-xl">
-            <h3 className="text-lg font-bold mb-4 text-indigo-400">🎉 Morceau généré avec succès !</h3>
-            <audio controls src={audioUrl} className="w-full rounded-lg" />
-          </div>
-        )}
-      </main>
+            {t("download")}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

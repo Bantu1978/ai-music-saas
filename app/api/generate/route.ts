@@ -1,68 +1,183 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseServer";
+import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { createClient } from "@/lib/supabase/server";
+import { adjustCredits } from "@/lib/credits";
+
+const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
+const MAX_PROMPT_LENGTH = 2000;
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, prompt, genre, mood, title, lyrics } = await req.json();
+    // 1. Authentification : l'utilisateur vient de la session, jamais du body.
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!userId || !prompt) {
-      return NextResponse.json({ error: "userId et prompt sont requis." }, { status: 400 });
+    if (authError || !user) {
+      return NextResponse.json({ error: "Vous devez être connecté." }, { status: 401 });
     }
 
-    // A. Vérifier les crédits de l'utilisateur
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("credits")
-      .eq("id", userId)
-      .single();
+    const userId = user.id;
 
-    if (profileError || !profile) {
-      return NextResponse.json({ error: "Utilisateur non trouvé." }, { status: 404 });
+    // 2. Validation de l'entrée
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Corps de requête invalide." }, { status: 400 });
     }
 
-    if (profile.credits < 1) {
-      return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
+    const { prompt, genre, mood, title, lyrics } = body as Record<string, unknown>;
+
+    if (typeof prompt !== "string" || prompt.trim().length === 0) {
+      return NextResponse.json({ error: "Le sujet de la chanson est requis." }, { status: 400 });
+    }
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json(
+        { error: `Le sujet ne peut pas dépasser ${MAX_PROMPT_LENGTH} caractères.` },
+        { status: 400 }
+      );
     }
 
-    // B. Créer l'entrée dans la table 'songs' en statut 'pending'
-    const { data: song, error: songError } = await supabaseAdmin
+    const apiKey = process.env.SUNO_API_KEY || process.env.GOAPI_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Service de génération non configuré (SUNO_API_KEY manquante)." },
+        { status: 500 }
+      );
+    }
+
+    const admin = getSupabaseAdmin();
+
+    const safeGenre = typeof genre === "string" && genre.trim() ? genre.trim() : "Afrobeats";
+    const safeTitle = typeof title === "string" && title.trim() ? title.trim() : "Sans titre";
+    const safeMood = typeof mood === "string" && mood.trim() ? mood.trim() : "Energetic";
+    const safeLyrics = typeof lyrics === "string" && lyrics.trim() ? lyrics.trim() : null;
+
+    // 3. Réservation du crédit AVANT l'appel externe (évite la double génération),
+    //    remboursé plus bas si Suno refuse la tâche.
+    const reservation = await adjustCredits(admin, userId, -1);
+
+    if (!reservation.ok) {
+      if (reservation.reason === "not_found") {
+        return NextResponse.json({ error: "Profil utilisateur introuvable." }, { status: 404 });
+      }
+      if (reservation.reason === "insufficient") {
+        return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
+      }
+      return NextResponse.json(
+        { error: "Génération déjà en cours, veuillez réessayer." },
+        { status: 409 }
+      );
+    }
+
+    // 4. Trace de la chanson en statut 'pending'
+    const fullPrompt = `${safeGenre} — ${prompt.trim()}`;
+
+    const { data: song, error: songError } = await admin
       .from("songs")
       .insert({
         user_id: userId,
-        title: title || "Sans titre",
-        genre: genre || "Pop",
-        mood: mood || "Energetic",
-        prompt_used: prompt,
-        lyrics: lyrics || null,
+        title: safeTitle,
+        genre: safeGenre,
+        mood: safeMood,
+        prompt_used: fullPrompt,
+        lyrics: safeLyrics,
         status: "pending",
       })
       .select()
       .single();
 
-    if (songError) {
-      return NextResponse.json({ error: "Erreur lors de la création de la chanson." }, { status: 500 });
+    if (songError || !song) {
+      await adjustCredits(admin, userId, 1); // remboursement
+      return NextResponse.json(
+        { error: "Erreur lors de la création de la chanson." },
+        { status: 500 }
+      );
     }
 
-    // C. Déduire 1 crédit de l'utilisateur
-    await supabaseAdmin
-      .from("profiles")
-      .update({ credits: profile.credits - 1 })
-      .eq("id", userId);
+    // 5. Appel réel à l'API Suno.
+    //    Mode non-custom : Suno écrit les paroles et chante à partir de la description,
+    //    le genre et le titre souhaités sont donc injectés dans cette description.
+    const description = safeLyrics
+      ? `Chanson ${safeGenre}, ambiance ${safeMood}, intitulée "${safeTitle}". Paroles imposées :\n${safeLyrics}`
+      : `Chanson ${safeGenre}, ambiance ${safeMood}, intitulée "${safeTitle}". Sujet : ${prompt.trim()}`;
 
-    // D. Enregistrer la transaction de crédit
-    await supabaseAdmin.from("credit_transactions").insert({
+    let taskId: string | undefined;
+    let sunoError = "La génération n'a pas pu être lancée.";
+
+    try {
+      const sunoRes = await fetch(SUNO_GENERATE_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey.trim()}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: description,
+          customMode: false,
+          instrumental: false,
+          model: process.env.SUNO_MODEL || "V4_5",
+          // Champ exigé par l'API. Le suivi se fait ici par polling
+          // (/api/generate/status), ce webhook n'est pas encore implémenté.
+          callBackUrl: `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/suno/callback`,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      const raw = await sunoRes.text();
+      let payload: any = null;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        payload = null;
+      }
+
+      taskId = payload?.data?.taskId || payload?.data?.task_id || payload?.taskId;
+
+      if (!sunoRes.ok || !taskId) {
+        sunoError = payload?.msg || payload?.error || `Suno a répondu ${sunoRes.status}.`;
+      }
+    } catch (err) {
+      sunoError =
+        err instanceof Error && err.name === "TimeoutError"
+          ? "Le service de génération ne répond pas."
+          : "Impossible de contacter le service de génération.";
+    }
+
+    // 6. Échec côté Suno : on rembourse le crédit et on marque la chanson en échec.
+    if (!taskId) {
+      await admin.from("songs").update({ status: "failed" }).eq("id", song.id);
+      await adjustCredits(admin, userId, 1);
+      return NextResponse.json({ error: sunoError }, { status: 502 });
+    }
+
+    // Persistance du taskId (best-effort : ignorée si la colonne n'existe pas en base)
+    const { error: taskIdError } = await admin
+      .from("songs")
+      .update({ task_id: taskId })
+      .eq("id", song.id);
+    if (taskIdError) {
+      console.warn("[generate] task_id non persisté :", taskIdError.message);
+    }
+
+    // 7. Journal de la transaction de crédit
+    await admin.from("credit_transactions").insert({
       user_id: userId,
       amount: -1,
       description: `Génération de la chanson: ${song.title}`,
     });
 
-    // E. Lancer l'appel vers Suno API (GoAPI / SunoAPI)
-    // ... Votre appel API Suno ici ...
-
-    return NextResponse.json({ success: true, songId: song.id });
-
+    return NextResponse.json({
+      success: true,
+      taskId,
+      songId: song.id,
+      prompt: fullPrompt,
+      creditsRemaining: reservation.credits,
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erreur serveur";
+    console.error("[generate]", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

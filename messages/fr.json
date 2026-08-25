@@ -1,18 +1,77 @@
 {
-  "HomePage": {
-    "title": "Créez des chansons complètes grâce à l'IA avec",
-    "subtitle": "Générez la musique, les paroles et la voix chantée en quelques secondes.",
-    "cta": "Créer une chanson"
+  "Nav": {
+    "brand": "BAKUMELO",
+    "studio": "Studio",
+    "dashboard": "Mes créations",
+    "pricing": "Tarifs",
+    "admin": "Admin",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "credits": "crédits"
   },
-  "CreatePage": {
-    "title": "Créer une Chanson Complète (Voix + Musique)",
-    "subtitle": "L'IA rédige les paroles, compose la musique et chante votre morceau.",
-    "genreLabel": "Style Musical",
-    "promptLabel": "Sujet de la chanson",
-    "promptPlaceholder": "Ex: Une chanson joyeuse célébrant l'inauguration de BAKUMELO à Douala...",
-    "submitBtn": "Générer la Chanson",
-    "generating": "Composition & Enregistrement vocal en cours...",
-    "downloadBtn": "Télécharger le MP3",
-    "lyricsTitle": "Paroles chantées :"
+  "Auth": {
+    "title": "Connexion à BAKUMELO",
+    "subtitle": "Connectez-vous pour profiter de votre crédit gratuit et composer votre musique.",
+    "google": "Continuer avec Google",
+    "close": "Fermer"
+  },
+  "HomePage": {
+    "badge": "🎁 1 crédit de génération offert à l'inscription !",
+    "title": "Créez de la musique Afro & Internationale par IA",
+    "subtitle": "Afrobeats, Amapiano, Makossa, Coupé-Décalé, Pop, R&B... Générez vos chansons dans la langue de votre choix.",
+    "ctaSignedOut": "Tester maintenant avec 1 crédit gratuit",
+    "ctaSignedIn": "Créer un morceau",
+    "ctaPricing": "Voir les tarifs"
+  },
+  "Studio": {
+    "title": "Studio de création musicale",
+    "subtitle": "Les paroles seront composées automatiquement dans la langue de votre texte.",
+    "promptLabel": "Saisissez l'idée de votre chanson (dans la langue souhaitée)",
+    "promptPlaceholder": "Ex: Une chanson d'amour rythmée en Makossa célébrant un mariage...",
+    "titleLabel": "Titre du morceau",
+    "titlePlaceholder": "Ex: Ndolo",
+    "genreLabel": "Style musical / Genre",
+    "submit": "Générer le morceau (1 crédit)",
+    "generating": "Composition & enregistrement vocal en cours",
+    "successTitle": "🎉 Morceau généré avec succès !",
+    "lyricsTitle": "Paroles chantées :",
+    "download": "Télécharger le MP3",
+    "signedOut": "Connectez-vous pour composer votre morceau.",
+    "timeout": "Délai dépassé. Merci de réessayer.",
+    "genericError": "Une erreur est survenue pendant la génération."
+  },
+  "Dashboard": {
+    "title": "Tableau de bord",
+    "subtitle": "Gérez vos créations musicales et vos crédits.",
+    "statSongs": "Chansons créées",
+    "statCredits": "Crédits restants",
+    "statPending": "Générations en cours",
+    "history": "Vos dernières générations",
+    "empty": "Aucune chanson générée pour le moment.",
+    "create": "+ Créer une chanson",
+    "signedOut": "Connectez-vous pour voir vos créations."
+  },
+  "Pricing": {
+    "title": "Recharger vos crédits",
+    "subtitle": "1 crédit d'essai gratuit est déjà disponible sur votre compte à l'inscription.",
+    "countryLabel": "Sélectionnez votre pays",
+    "recommended": "Recommandé",
+    "creditsSuffix": "crédits de génération",
+    "buy": "Acheter maintenant",
+    "packDiscovery": "Pack Découverte",
+    "packCreator": "Pack Créateur",
+    "packPro": "Pack Pro"
+  },
+  "Admin": {
+    "title": "Console d'administration",
+    "loading": "Chargement des données...",
+    "usersSection": "Utilisateurs & crédits",
+    "colUser": "Email / Nom",
+    "colCredits": "Crédits",
+    "colAction": "Action",
+    "addCredits": "+ Ajouter crédits",
+    "addCreditsPrompt": "Combien de crédits souhaitez-vous ajouter ?",
+    "songsSection": "Dernières générations",
+    "forbidden": "Accès réservé aux administrateurs."
   }
 }
