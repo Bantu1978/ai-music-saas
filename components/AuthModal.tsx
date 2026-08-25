@@ -1,148 +1,67 @@
 "use client";
 
-import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
+export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   const supabase = createClient();
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName },
-        },
-      });
-      if (error) setError(error.message);
-      else {
-        alert("Vérifiez votre boîte mail pour confirmer votre inscription !");
-        onClose();
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) setError(error.message);
-      else onClose();
-    }
-    setLoading(false);
-  };
-
-  const handleOAuth = async (provider: "google") => {
+  const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
-      provider,
+      provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/fr/generate`,
       },
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-zinc-900 p-6 shadow-xl border border-zinc-800 text-white relative">
-        <button 
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-zinc-900 border-2 border-zinc-800 p-6 sm:p-8 rounded-2xl max-w-md w-full relative shadow-2xl">
+        <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-zinc-400 hover:text-white"
+          className="absolute top-4 right-4 text-zinc-400 hover:text-white text-lg font-bold"
         >
           ✕
         </button>
 
-        <h2 className="text-2xl font-bold mb-2 text-center">
-          {isSignUp ? "Créer un compte BAKUMELO" : "Connexion à BAKUMELO"}
+        <h2 className="text-2xl font-extrabold text-white text-center mb-2">
+          Connexion à BAKUMELO
         </h2>
-        <p className="text-sm text-zinc-400 text-center mb-6">
-          {isSignUp ? "Obtenez 3 crédits gratuits dès votre inscription" : "Ravi de vous revoir !"}
+        <p className="text-zinc-400 text-xs text-center mb-6">
+          Connectez-vous pour profiter de votre crédit gratuit et composer votre musique.
         </p>
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-500 border border-red-500/20">
-            {error}
-          </div>
-        )}
-
         <button
-          onClick={() => handleOAuth("google")}
-          className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 py-2.5 font-medium hover:bg-zinc-700 transition"
+          onClick={handleGoogleLogin}
+          className="w-full py-3.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl flex items-center justify-center gap-3 transition shadow-lg"
         >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.91H1.33v3.13C3.33 21.31 7.4 24 12 24z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.32 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.6H1.33C.48 8.29 0 10.09 0 12s.48 3.71 1.33 5.4l3.99-3.13z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.4 0 3.33 2.69 1.33 6.6l3.99 3.13c.94-2.82 3.58-4.98 6.68-4.98z"
+            />
+          </svg>
           Continuer avec Google
         </button>
-
-        <div className="relative my-4 flex items-center justify-center">
-          <div className="w-full border-t border-zinc-800"></div>
-          <span className="absolute bg-zinc-900 px-3 text-xs text-zinc-500 uppercase">ou</span>
-        </div>
-
-        <form onSubmit={handleEmailAuth} className="space-y-4">
-          {isSignUp && (
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Nom complet</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
-                placeholder="John Doe"
-              />
-            </div>
-          )}
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
-              placeholder="votre@email.com"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">Mot de passe</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-500 transition disabled:opacity-50"
-          >
-            {loading ? "Chargement..." : isSignUp ? "S'inscrire" : "Se connecter"}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-sm text-zinc-400">
-          {isSignUp ? "Vous avez déjà un compte ?" : "Pas encore de compte ?"}
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="ml-2 text-indigo-400 font-medium hover:underline"
-          >
-            {isSignUp ? "Se connecter" : "S'inscrire"}
-          </button>
-        </div>
       </div>
     </div>
   );
