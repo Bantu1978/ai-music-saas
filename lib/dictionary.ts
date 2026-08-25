@@ -1,0 +1,26 @@
+export const dictionary = {
+  fr: {
+    home: "Accueil",
+    create: "Créer un morceau",
+    pricing: "Tarifs",
+    admin: "Admin",
+    heroTitle: "Transformez vos idées en musique instantanée",
+    heroDesc: "Générez des morceaux de qualité studio grâce à l'intelligence artificielle.",
+    startCreating: "Commencer à créer (1 crédit offert)",
+    login: "Connexion",
+    logout: "Déconnexion",
+    credits: "crédits",
+  },
+  en: {
+    home: "Home",
+    create: "Create Track",
+    pricing: "Pricing",
+    admin: "Admin",
+    heroTitle: "Turn your ideas into instant music",
+    heroDesc: "Generate studio-quality tracks powered by artificial intelligence.",
+    startCreating: "Start Creating (1 free credit)",
+    login: "Sign In",
+    logout: "Sign Out",
+    credits: "credits",
+  },
+};
