@@ -1,80 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
-import https from "https";
-
-const agent = new https.Agent({ keepAlive: true });
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, genre } = await req.json();
+    const { userId, prompt, genre, mood, title, lyrics } = await req.json();
 
-    if (!prompt) {
-      return NextResponse.json(
-        { error: "Le sujet de la chanson est obligatoire." },
-        { status: 400 }
-      );
+    if (!userId || !prompt) {
+      return NextResponse.json({ error: "userId et prompt sont requis." }, { status: 400 });
     }
 
-    const apiKey = process.env.SUNO_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "La variable SUNO_API_KEY est manquante dans .env.local" },
-        { status: 500 }
-      );
+    // A. Vérifier les crédits de l'utilisateur
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("credits")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Utilisateur non trouvé." }, { status: 404 });
     }
 
-    const fullPrompt = genre ? `${genre}: ${prompt}` : prompt;
+    if (profile.credits < 1) {
+      return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
+    }
 
-    // Démarrage de la tâche chez SunoAPI.org
-    const createRes = await fetch("https://api.sunoapi.org/api/v1/generate", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: fullPrompt,
-        customMode: false,
-        instrumental: false,
-        model: "V3_5",
-        callBackUrl: "https://bakumelo.com/api/callback",
-      }),
-      // @ts-ignore
-      agent,
+    // B. Créer l'entrée dans la table 'songs' en statut 'pending'
+    const { data: song, error: songError } = await supabaseAdmin
+      .from("songs")
+      .insert({
+        user_id: userId,
+        title: title || "Sans titre",
+        genre: genre || "Pop",
+        mood: mood || "Energetic",
+        prompt_used: prompt,
+        lyrics: lyrics || null,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (songError) {
+      return NextResponse.json({ error: "Erreur lors de la création de la chanson." }, { status: 500 });
+    }
+
+    // C. Déduire 1 crédit de l'utilisateur
+    await supabaseAdmin
+      .from("profiles")
+      .update({ credits: profile.credits - 1 })
+      .eq("id", userId);
+
+    // D. Enregistrer la transaction de crédit
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: userId,
+      amount: -1,
+      description: `Génération de la chanson: ${song.title}`,
     });
 
-    const rawText = await createRes.text();
-    let createData: any;
+    // E. Lancer l'appel vers Suno API (GoAPI / SunoAPI)
+    // ... Votre appel API Suno ici ...
 
-    try {
-      createData = JSON.parse(rawText);
-    } catch (e) {
-      return NextResponse.json(
-        { error: `Erreur serveur SunoAPI (${createRes.status})` },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ success: true, songId: song.id });
 
-    if (!createRes.ok || (createData.code && createData.code !== 200 && createData.code !== 0)) {
-      const errMsg = createData.msg || createData.message || createData.error || `Erreur API (${createRes.status})`;
-      return NextResponse.json({ error: errMsg }, { status: 400 });
-    }
-
-    const taskId = createData.data?.taskId || createData.data?.task_id || createData.taskId;
-
-    if (!taskId) {
-      return NextResponse.json(
-        { error: "L'identifiant de tâche n'a pas été renvoyé." },
-        { status: 500 }
-      );
-    }
-
-    // Réponse instantanée avec le taskId
-    return NextResponse.json({ taskId, prompt: fullPrompt });
-  } catch (error: any) {
-    console.error("Erreur serveur API:", error);
-    return NextResponse.json(
-      { error: error.message || "Une erreur interne s'est produite." },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur serveur";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
