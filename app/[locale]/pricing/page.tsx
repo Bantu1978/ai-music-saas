@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
+/**
+ * La ligne de confirmation nomme la devise, obtenue via Intl.
+ *
+ * Les huit pays de la zone franc partagent le même prix, au même taux : passer
+ * du Cameroun au Sénégal ne change rien à l'affichage des montants, ce qui
+ * donnait l'impression d'un sélecteur figé. Nommer la devise rend ce partage
+ * explicite au lieu de le laisser deviner.
+ */
 const COUNTRIES = [
   // Zone Franc CFA (XAF / XOF)
   { code: "CM", name: "Cameroun", currency: "XAF", rate: 1, symbol: "FCFA" },
@@ -32,7 +40,22 @@ const PACKS = [
 
 export default function PricingPage() {
   const t = useTranslations("Pricing");
+  const locale = useLocale();
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+
+  // Nom de devise localisé, plutôt qu'une table maison à tenir à jour. Intl
+  // distingue en outre XAF (BEAC) de XOF (BCEAO) : deux pays de la zone franc
+  // deviennent réellement différenciables, alors que « franc CFA » seul les
+  // aurait laissés identiques. Repli sur le code ISO si l'API manque.
+  const currencyNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([locale], { type: "currency" });
+    } catch {
+      return null;
+    }
+  }, [locale]);
+
+  const currencyLabel = (code: string) => currencyNames?.of(code) ?? code;
 
   const formatPrice = (baseFcfa: number) => {
     const converted = baseFcfa * selectedCountry.rate;
@@ -72,6 +95,17 @@ export default function PricingPage() {
             </option>
           ))}
         </select>
+
+        {/* Confirmation du choix. Le nom du pays y figure toujours : c'est ce
+            qui garantit un changement visible à chaque sélection, y compris
+            entre deux pays de la zone franc où les montants sont identiques.
+            aria-live pour que la substitution soit aussi annoncée à voix haute. */}
+        <p aria-live="polite" className="mt-3 text-xs text-zinc-400">
+          {t("displayedFor", {
+            country: selectedCountry.name,
+            currency: currencyLabel(selectedCountry.currency),
+          })}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
