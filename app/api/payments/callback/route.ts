@@ -39,7 +39,12 @@ export async function GET(req: NextRequest) {
     ? await readPaymentOutcome(getSupabaseAdmin(), reference)
     : "unknown";
 
+  // La référence accompagne l'issue : elle permet à la page tarifs d'attendre
+  // la confirmation du webhook au lieu de laisser le client recharger au hasard.
+  const params = new URLSearchParams({ paiement: issue });
+  if (reference) params.set("ref", reference);
+
   return NextResponse.redirect(
-    `${appBaseUrl(req.nextUrl.origin)}/${locale}/pricing?paiement=${issue}`
+    `${appBaseUrl(req.nextUrl.origin)}/${locale}/pricing?${params}`
   );
 }

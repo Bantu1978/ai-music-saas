@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { SIGNUP_CREDITS } from "@/lib/signupOffer";
@@ -47,9 +47,63 @@ export default function PricingPage() {
   const [erreur, setErreur] = useState<string | null>(null);
 
   // Issue rapportée par /api/payments/callback au retour de Notch Pay.
-  // Dérivée, pas stockée : useSearchParams est déjà réactif, et un effet qui
-  // recopie sa valeur dans un état ne ferait qu'ajouter un rendu en cascade.
-  const issue = useSearchParams().get("paiement");
+  const params = useSearchParams();
+  const issueInitiale = params.get("paiement");
+  const reference = params.get("ref");
+
+  // Stockée, contrairement au reste : elle évolue quand le webhook confirme le
+  // paiement pendant que le client regarde la page.
+  const [issue, setIssue] = useState<string | null>(issueInitiale);
+
+  // Attente active de la confirmation.
+  //
+  // Seul le webhook crédite, et il arrive après le retour du client. Sans cela,
+  // le client resterait devant « en attente » sans savoir quand recharger — ce
+  // qui était précisément l'expérience avant ce correctif.
+  useEffect(() => {
+    if (!reference) return;
+    if (issue !== "pending" && issue !== "unverified") return;
+
+    let actif = true;
+    let minuteur: ReturnType<typeof setTimeout>;
+    let essais = 0;
+    const MAX_ESSAIS = 40; // 40 x 3 s = 2 minutes
+
+    const demander = async () => {
+      if (!actif) return;
+      essais += 1;
+
+      try {
+        const res = await fetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`);
+        const data = await res.json();
+        if (!actif) return;
+
+        if (data.status === "complete") {
+          setIssue("credited");
+          // Réveille l'en-tête : il recharge le solde au retour sur l'onglet,
+          // et écoute donc déjà cet événement. Le nouveau nombre de crédits
+          // apparaît sans rechargement.
+          window.dispatchEvent(new Event("focus"));
+          return;
+        }
+        if (data.status === "failed") {
+          setIssue("failed");
+          return;
+        }
+      } catch {
+        // Réseau instable : on retentera, l'échec n'est pas concluant.
+      }
+
+      if (actif && essais < MAX_ESSAIS) minuteur = setTimeout(demander, 3000);
+    };
+
+    minuteur = setTimeout(demander, 3000);
+
+    return () => {
+      actif = false;
+      clearTimeout(minuteur);
+    };
+  }, [issue, reference]);
 
   const acheter = async (packId: PackId) => {
     setErreur(null);
@@ -156,6 +210,9 @@ export default function PricingPage() {
           }`}
         >
           {t(`issue_${issue}`)}
+          {(issue === "pending" || issue === "unverified") && reference && (
+            <span className="block mt-2 text-xs opacity-80">{t("awaitingConfirmation")}</span>
+          )}
         </div>
       )}
 
