@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { SONG_STATUS } from "@/lib/songStatus";
 
 // Les chiffres affichés proviennent de la base : l'ancienne version montrait
 // des statistiques inventées en dur (12 chansons, 48 crédits, abonnement Pro).
@@ -36,9 +37,9 @@ export default async function DashboardPage() {
 
   const list = songs ?? [];
   const stats = [
-    { label: t("statSongs"), value: list.filter((s) => s.status === "success").length },
+    { label: t("statSongs"), value: list.filter((s) => s.status === SONG_STATUS.completed).length },
     { label: t("statCredits"), value: profile?.credits ?? 0 },
-    { label: t("statPending"), value: list.filter((s) => s.status === "pending").length },
+    { label: t("statPending"), value: list.filter((s) => s.status === SONG_STATUS.pending).length },
   ];
 
   return (

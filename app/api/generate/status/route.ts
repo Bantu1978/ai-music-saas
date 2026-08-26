@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
+import { SONG_STATUS } from "@/lib/songStatus";
 
 /**
  * Suivi d'une génération Suno.
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
             .from("songs")
             .update({
               audio_url: audioUrl,
-              status: "success",
+              status: SONG_STATUS.completed,
               ...(lyrics ? { lyrics } : {}),
               ...(title ? { title } : {}),
             })
@@ -82,7 +83,11 @@ export async function GET(req: NextRequest) {
             .eq("user_id", user.id);
 
           if (error) {
-            console.warn("[status] persistance échouée :", error.message);
+            // Non bloquant pour l'écoute immédiate, mais le téléchargement
+            // repose sur `audio_url` : un échec ici doit être visible.
+            console.error(
+              `[status] persistance échouée (${error.code}) : ${error.message}`
+            );
           }
         }
 
@@ -97,7 +102,7 @@ export async function GET(req: NextRequest) {
       if (songId) {
         await getSupabaseAdmin()
           .from("songs")
-          .update({ status: "failed" })
+          .update({ status: SONG_STATUS.failed })
           .eq("id", songId)
           .eq("user_id", user.id);
       }

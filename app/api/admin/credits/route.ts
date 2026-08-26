@@ -42,6 +42,10 @@ export async function POST(req: NextRequest) {
   const result = await adjustCredits(admin, userId, amount);
 
   if (!result.ok) {
+    if (result.reason === "error") {
+      console.error("[admin/credits] refus de la base :", result.message);
+      return NextResponse.json({ error: result.message }, { status: 500 });
+    }
     const status =
       result.reason === "not_found" ? 404 : result.reason === "insufficient" ? 400 : 409;
     return NextResponse.json({ error: result.reason }, { status });
