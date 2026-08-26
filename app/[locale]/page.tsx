@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { SIGNUP_CREDITS } from "@/lib/signupOffer";
 import { Link } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/AuthModal";
@@ -35,7 +36,7 @@ export default function LandingPage() {
     <div className="flex-1 flex flex-col justify-center items-center">
       <div className="max-w-5xl w-full px-6 py-16 flex flex-col items-center text-center">
         <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2 border-indigo-500/50 bg-indigo-950/60 text-indigo-300 text-sm font-bold mb-8 shadow-lg shadow-indigo-600/20">
-          {t("badge")}
+          {t("badge", { count: SIGNUP_CREDITS })}
         </div>
 
         <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight max-w-4xl leading-tight">
@@ -59,7 +60,7 @@ export default function LandingPage() {
               onClick={() => setIsAuthOpen(true)}
               className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/30 text-lg transition text-center"
             >
-              {t("ctaSignedOut")} 🎵
+              {t("ctaSignedOut", { count: SIGNUP_CREDITS })} 🎵
             </button>
           )}
 

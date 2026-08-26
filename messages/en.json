@@ -11,7 +11,7 @@
   },
   "Auth": {
     "title": "Sign in to BAKUMELO",
-    "subtitle": "Sign in to claim your free credit and start composing.",
+    "subtitle": "Sign in to claim {count, plural, one {your free credit} other {your # free credits}} and start composing.",
     "google": "Continue with Google",
     "close": "Close",
     "tabSignIn": "Sign in",
@@ -40,10 +40,10 @@
     "backToSignIn": "Back to sign in"
   },
   "HomePage": {
-    "badge": "🎁 1 free generation credit on signup!",
+    "badge": "🎁 {count, plural, one {# free generation credit} other {# free generation credits}} on signup!",
     "title": "Create Afro & International Music with AI",
     "subtitle": "Afrobeats, Amapiano, Makossa, Coupé-Décalé, Pop, R&B... Generate your songs in the language of your choice.",
-    "ctaSignedOut": "Try now with 1 free credit",
+    "ctaSignedOut": "Try now with {count, plural, one {# free credit} other {# free credits}}",
     "ctaSignedIn": "Create a track",
     "ctaPricing": "View pricing"
   },
@@ -88,7 +88,7 @@
   },
   "Pricing": {
     "title": "Top up your credits",
-    "subtitle": "1 free trial credit is already available on your account after signing up.",
+    "subtitle": "{count, plural, one {# free trial credit is} other {# free trial credits are}} already available on your account after signing up.",
     "countryLabel": "Select your country",
     "recommended": "Recommended",
     "creditsSuffix": "generation credits",
