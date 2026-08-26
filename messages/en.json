@@ -7,7 +7,9 @@
     "admin": "Admin",
     "login": "Sign In",
     "logout": "Sign Out",
-    "credits": "credits"
+    "credits": "credits",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu"
   },
   "Auth": {
     "title": "Sign in to BAKUMELO",
