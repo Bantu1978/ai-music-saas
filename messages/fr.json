@@ -108,7 +108,14 @@
     "colDate": "Date",
     "colAmount": "Montant",
     "colReason": "Motif",
-    "unknownUser": "Compte supprimé"
+    "unknownUser": "Compte supprimé",
+    "searchLabel": "Rechercher un utilisateur",
+    "searchPlaceholder": "Rechercher par email ou nom...",
+    "noResults": "Aucun utilisateur ne correspond à cette recherche.",
+    "totalUsers": "{count} utilisateur(s)",
+    "pagePrevious": "Précédent",
+    "pageNext": "Suivant",
+    "pageStatus": "Page {page} sur {pages}"
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",
