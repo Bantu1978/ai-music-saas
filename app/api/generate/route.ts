@@ -7,6 +7,19 @@ import { SONG_STATUS } from "@/lib/songStatus";
 const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
 const MAX_PROMPT_LENGTH = 2000;
 
+/**
+ * Base publique de l'application, utilisée pour construire le callBackUrl.
+ *
+ * Lue sous deux noms : APP_URL (nom retenu côté Vercel, et le bon puisque cette
+ * valeur ne sert que côté serveur) et NEXT_PUBLIC_APP_URL (nom historique,
+ * conservé pour .env.local). Un repli sur localhost garantit une URL absolue :
+ * l'API refuse un chemin relatif.
+ */
+function appBaseUrl(): string {
+  const raw = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  return raw.replace(/\/+$/, "");
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authentification : l'utilisateur vient de la session, jamais du body.
@@ -129,8 +142,9 @@ export async function POST(req: NextRequest) {
           instrumental: false,
           model: process.env.SUNO_MODEL || "V4_5",
           // Champ exigé par l'API. Le suivi se fait ici par polling
-          // (/api/generate/status), ce webhook n'est pas encore implémenté.
-          callBackUrl: `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/suno/callback`,
+          // (/api/generate/status), ce webhook n'est pas encore implémenté —
+          // mais l'URL doit rester absolue, sous peine de rejet de la requête.
+          callBackUrl: `${appBaseUrl()}/api/suno/callback`,
         }),
         signal: AbortSignal.timeout(30_000),
       });
