@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { SIGNUP_CREDITS } from "@/lib/signupOffer";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthModalProps {
@@ -155,7 +156,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {mode === "reset" ? t("resetTitle") : t("title")}
         </h2>
         <p className="text-zinc-400 text-xs text-center mb-6">
-          {mode === "reset" ? t("resetSubtitle") : t("subtitle")}
+          {mode === "reset" ? t("resetSubtitle") : t("subtitle", { count: SIGNUP_CREDITS })}
         </p>
 
         {mode !== "reset" && (

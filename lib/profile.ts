@@ -1,7 +1,9 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
-/** Crédit offert à l'inscription, aligné sur le message de la page d'accueil. */
-export const DEFAULT_NEW_USER_CREDITS = 1;
+import { SIGNUP_CREDITS } from "./signupOffer";
+
+/** Conservé comme alias : le nombre lui-même vit dans lib/signupOffer.ts. */
+export const DEFAULT_NEW_USER_CREDITS = SIGNUP_CREDITS;
 
 export type ProfileRow = { credits: number; full_name: string | null };
 

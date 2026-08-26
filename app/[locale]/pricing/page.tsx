@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { SIGNUP_CREDITS } from "@/lib/signupOffer";
 
 /**
  * La ligne de confirmation nomme la devise, obtenue via Intl.
@@ -69,7 +70,7 @@ export default function PricingPage() {
     <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 py-12">
       <div className="text-center mb-8">
         <h1 className="text-3xl sm:text-5xl font-extrabold">{t("title")}</h1>
-        <p className="mt-2 text-zinc-400 text-sm sm:text-base">{t("subtitle")}</p>
+        <p className="mt-2 text-zinc-400 text-sm sm:text-base">{t("subtitle", { count: SIGNUP_CREDITS })}</p>
       </div>
 
       <div className="max-w-xs mx-auto mb-10 text-center">

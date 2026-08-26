@@ -11,7 +11,7 @@
   },
   "Auth": {
     "title": "Connexion à BAKUMELO",
-    "subtitle": "Connectez-vous pour profiter de votre crédit gratuit et composer votre musique.",
+    "subtitle": "Connectez-vous pour profiter de {count, plural, one {votre crédit gratuit} other {vos # crédits gratuits}} et composer votre musique.",
     "google": "Continuer avec Google",
     "close": "Fermer",
     "tabSignIn": "Se connecter",
@@ -40,10 +40,10 @@
     "backToSignIn": "Retour à la connexion"
   },
   "HomePage": {
-    "badge": "🎁 1 crédit de génération offert à l'inscription !",
+    "badge": "🎁 {count, plural, one {# crédit de génération offert} other {# crédits de génération offerts}} à l'inscription !",
     "title": "Créez de la musique Afro & Internationale par IA",
     "subtitle": "Afrobeats, Amapiano, Makossa, Coupé-Décalé, Pop, R&B... Générez vos chansons dans la langue de votre choix.",
-    "ctaSignedOut": "Tester maintenant avec 1 crédit gratuit",
+    "ctaSignedOut": "Tester maintenant avec {count, plural, one {# crédit gratuit} other {# crédits gratuits}}",
     "ctaSignedIn": "Créer un morceau",
     "ctaPricing": "Voir les tarifs"
   },
@@ -88,7 +88,7 @@
   },
   "Pricing": {
     "title": "Recharger vos crédits",
-    "subtitle": "1 crédit d'essai gratuit est déjà disponible sur votre compte à l'inscription.",
+    "subtitle": "{count, plural, one {# crédit d'essai gratuit est déjà disponible} other {# crédits d'essai gratuits sont déjà disponibles}} sur votre compte à l'inscription.",
     "countryLabel": "Sélectionnez votre pays",
     "recommended": "Recommandé",
     "creditsSuffix": "crédits de génération",
