@@ -122,7 +122,20 @@ export async function retrievePayment(reference: string): Promise<NotchPayment |
 }
 
 /**
- * Vérifie la signature d'un webhook.
+ * Un secret de webhook est-il configuré ?
+ *
+ * Notch Pay n'en délivre pas : ni la création de webhook (POST /webhooks) ni le
+ * schéma `Webhook` de leur spécification ne renvoient de secret, et leur
+ * documentation n'en montre qu'un espace réservé. La signature est donc
+ * facultative ici — voir le commentaire de la route du webhook, qui explique
+ * pourquoi cela ne fragilise pas l'attribution des crédits.
+ */
+export function hasWebhookSecret(): boolean {
+  return Boolean((process.env.NOTCHPAY_WEBHOOK_SECRET || "").trim());
+}
+
+/**
+ * Vérifie la signature d'un webhook, quand un secret est configuré.
  *
  * HMAC-SHA256 hexadécimal du corps **brut** — sérialiser puis re-sérialiser le
  * JSON changerait un espace et invaliderait la comparaison. Comparaison à temps
@@ -133,8 +146,11 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
   if (!secret || !signature) return false;
 
   const attendu = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const a = Buffer.from(attendu, "utf8");
-  const b = Buffer.from(signature.trim(), "utf8");
+  // Hexadécimal comparé sans égard à la casse : l'exemple officiel décode en
+  // Buffer hex, ce qui rend 'AB' et 'ab' équivalents. Le faire ici aussi évite
+  // de rejeter une signature parfaitement valide.
+  const a = Buffer.from(attendu.toLowerCase(), "utf8");
+  const b = Buffer.from(signature.trim().toLowerCase(), "utf8");
 
   // timingSafeEqual exige des longueurs égales : une signature de taille
   // différente est refusée avant même la comparaison.
