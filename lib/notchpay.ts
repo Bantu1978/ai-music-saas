@@ -16,11 +16,17 @@ const API_BASE = "https://api.notchpay.co";
 
 export type NotchPayment = {
   id?: string;
+  /** Référence générée par Notch Pay — la seule qui fonctionne en relecture. */
   reference?: string;
+  /** Notre référence, telle que Notch Pay nous la retourne. */
+  merchant_reference?: string;
+  /** Doublon de merchant_reference, présent dans les retours navigateur. */
+  trxref?: string;
   amount?: number;
   currency?: string;
   status?: string;
   customer?: string;
+  sandbox?: boolean | number;
   created_at?: string;
   completed_at?: string;
 };

@@ -17,7 +17,12 @@ import { settlePayment } from "@/lib/settlePayment";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const locale = searchParams.get("locale") === "en" ? "en" : "fr";
-  const reference = searchParams.get("reference") || searchParams.get("trxref");
+  // Notch Pay renvoie `reference` (la sienne) et `trxref` (la nôtre) ;
+  // settlePayment() reconnaît les deux.
+  const reference =
+    searchParams.get("reference") ||
+    searchParams.get("trxref") ||
+    searchParams.get("merchant_reference");
 
   const issue = reference
     ? await settlePayment(getSupabaseAdmin(), reference)

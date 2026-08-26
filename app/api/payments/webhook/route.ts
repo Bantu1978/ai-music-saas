@@ -51,12 +51,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, note: "corps illisible" });
   }
 
-  // La référence peut être à la racine ou sous `data` selon l'événement.
+  // La référence peut être à la racine ou sous `data` selon l'événement, et
+  // porter trois noms : `reference` est celle de Notch Pay, `trxref` et
+  // `merchant_reference` sont la nôtre. settlePayment() reconnaît les deux,
+  // on retient donc la première présente.
   const data = (payload?.data ?? {}) as Record<string, unknown>;
+  const candidats = [
+    data.reference,
+    data.trxref,
+    data.merchant_reference,
+    payload?.reference,
+    payload?.trxref,
+    payload?.merchant_reference,
+  ];
   const reference =
-    (typeof data.reference === "string" && data.reference) ||
-    (typeof payload?.reference === "string" && payload.reference) ||
-    null;
+    candidats.find((c): c is string => typeof c === "string" && c.length > 0) ?? null;
 
   if (!reference) {
     return NextResponse.json({ ok: true, note: "aucune référence" });

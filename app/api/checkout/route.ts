@@ -80,5 +80,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 502 });
   }
 
+  // Notch Pay génère sa propre référence et conserve la nôtre sous
+  // merchant_reference. C'est la sienne qui permet de relire le paiement :
+  // sans elle, aucun encaissement ne pourrait être vérifié ni crédité.
+  const referenceNotchPay = result.payment.reference;
+  if (referenceNotchPay) {
+    const { error: majError } = await admin
+      .from("payments")
+      .update({ provider_reference: referenceNotchPay })
+      .eq("reference", reference);
+
+    if (majError) {
+      console.error("[checkout] référence Notch Pay non enregistrée :", majError.message);
+    }
+  } else {
+    console.error("[checkout] Notch Pay n'a renvoyé aucune référence pour", reference);
+  }
+
   return NextResponse.json({ authorizationUrl: result.authorizationUrl, reference });
 }
