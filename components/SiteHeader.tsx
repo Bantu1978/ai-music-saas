@@ -24,21 +24,37 @@ export default function SiteHeader() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     const loadProfile = async (current: User | null) => {
       if (!current) {
-        if (active) setProfile(null);
+        if (active) {
+          setProfile(null);
+          setAdmin(false);
+        }
         return;
       }
+
       const { data } = await supabase
         .from("profiles")
         .select("full_name, credits")
         .eq("id", current.id)
         .single();
       if (active) setProfile(data);
+
+      // ADMIN_EMAILS est une variable serveur : seule cette route peut dire au
+      // navigateur si l'utilisateur courant est administrateur. Un échec est
+      // traité comme « non administrateur » (fail closed).
+      try {
+        const res = await fetch("/api/admin/status");
+        const status = await res.json();
+        if (active) setAdmin(Boolean(status?.isAdmin));
+      } catch {
+        if (active) setAdmin(false);
+      }
     };
 
     supabase.auth.getUser().then(({ data }) => {
@@ -64,6 +80,7 @@ export default function SiteHeader() {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setAdmin(false);
     router.push("/");
   };
 
@@ -85,6 +102,16 @@ export default function SiteHeader() {
             <Link href="/pricing" className="px-3 py-1.5 rounded-lg hover:text-white hover:bg-zinc-900 transition">
               {t("pricing")}
             </Link>
+            {/* Confort d'affichage uniquement : la page /admin et les routes
+                /api/admin/* revérifient toutes le statut côté serveur. */}
+            {admin && (
+              <Link
+                href="/admin"
+                className="px-3 py-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-zinc-900 transition"
+              >
+                {t("admin")}
+              </Link>
+            )}
           </nav>
 
           <div className="flex items-center gap-3 ml-auto">
