@@ -6,12 +6,10 @@ import { SONG_STATUS } from "@/lib/songStatus";
 import { isAdmin } from "@/lib/admin";
 import type { SunoGenerateResponse } from "@/lib/suno";
 import {
-  DEFAULT_GENRE,
-  DEFAULT_LANGUAGE,
   DEFAULT_VOICE,
   VOICE_PROMPT,
-  isGenre,
-  isLanguage,
+  findGenre,
+  findLanguage,
   isVoice,
 } from "@/lib/musicOptions";
 
@@ -77,19 +75,18 @@ export async function POST(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    // Genre, voix et langue sont validés contre les listes du studio plutôt que
+    // Genre, voix et langue sont résolus contre les listes du studio plutôt que
     // repris tels quels : ils finissent dans la consigne envoyée à Suno, et rien
-    // n'oblige un appelant à passer par le formulaire.
-    const safeGenre = isGenre(genre) ? genre : DEFAULT_GENRE;
+    // n'oblige un appelant à passer par le formulaire. Une valeur inconnue
+    // retombe sur le premier choix, jamais sur ce qui a été posté.
+    const genreChoisi = findGenre(genre);
+    const langueChoisie = findLanguage(language);
     const safeVoice = isVoice(voice) ? voice : DEFAULT_VOICE;
-    const safeLanguage = isLanguage(language) ? language : DEFAULT_LANGUAGE;
 
     const consigneVoix = VOICE_PROMPT[safeVoice];
-    // "auto" laisse Suno suivre la langue du texte saisi, comportement d'avant
-    // l'ajout de ce choix.
-    const consigneLangue = safeLanguage === "auto" ? null : safeLanguage;
+    const consigneLangue = langueChoisie.prompt;
     const safeTitle = typeof title === "string" && title.trim() ? title.trim() : "Sans titre";
-    const safeMood = typeof mood === "string" && mood.trim() ? mood.trim() : "Energetic";
+    const safeMood = typeof mood === "string" && mood.trim() ? mood.trim() : "energetic";
     const safeLyrics = typeof lyrics === "string" && lyrics.trim() ? lyrics.trim() : null;
 
     // 3. Réservation du crédit AVANT l'appel externe (évite la double génération),
@@ -131,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Trace de la chanson en statut 'pending'
     const fullPrompt =
-      [safeGenre, consigneVoix, consigneLangue].filter(Boolean).join(" · ") +
+      [genreChoisi.label, consigneVoix, langueChoisie.prompt].filter(Boolean).join(" · ") +
       ` — ${prompt.trim()}`;
 
     const { data: song, error: songError } = await admin
@@ -139,7 +136,7 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: userId,
         title: safeTitle,
-        genre: safeGenre,
+        genre: genreChoisi.label,
         mood: safeMood,
         prompt_used: fullPrompt,
         lyrics: safeLyrics,
@@ -161,15 +158,19 @@ export async function POST(req: NextRequest) {
     //    description. Celle-ci est le seul canal disponible — ni la voix ni la
     //    langue n'ont de paramètre dédié dans l'API — donc toutes les consignes
     //    de style y sont assemblées.
-    const consignes = [`Chanson ${safeGenre}`, `ambiance ${safeMood}`];
+    //    Les tags sont en anglais, y compris pour un utilisateur francophone :
+    //    Suno les reconnaît bien plus fiablement ainsi. Seul le sujet reste dans
+    //    la langue de l'utilisateur, puisque c'est lui qui détermine les paroles
+    //    quand aucune langue n'est imposée.
+    const consignes = [genreChoisi.prompt, safeMood.toLowerCase()];
     if (consigneVoix) consignes.push(consigneVoix);
-    if (consigneLangue) consignes.push(`paroles chantées en ${consigneLangue}`);
+    if (consigneLangue) consignes.push(`sung in ${consigneLangue}`);
 
-    const entete = `${consignes.join(", ")}, intitulée "${safeTitle}".`;
+    const entete = `${consignes.join(", ")}. Song title: "${safeTitle}".`;
 
     const description = safeLyrics
-      ? `${entete} Paroles imposées :\n${safeLyrics}`
-      : `${entete} Sujet : ${prompt.trim()}`;
+      ? `${entete} Use these exact lyrics:\n${safeLyrics}`
+      : `${entete} Write the lyrics about: ${prompt.trim()}`;
 
     let taskId: string | undefined;
     let sunoError = "La génération n'a pas pu être lancée.";
@@ -185,7 +186,9 @@ export async function POST(req: NextRequest) {
           prompt: description,
           customMode: false,
           instrumental: false,
-          model: process.env.SUNO_MODEL || "V4_5",
+          // V5 par défaut : meilleur sur les styles portés par la voix, et
+          // facturé au même prix que V4_5 selon la documentation.
+          model: process.env.SUNO_MODEL || "V5",
           // Champ exigé par l'API. Le suivi se fait ici par polling
           // (/api/generate/status), ce webhook n'est pas encore implémenté —
           // mais l'URL doit rester absolue, sous peine de rejet de la requête.

@@ -5,29 +5,108 @@
  * exactement la liste que le client propose, plutôt que de faire confiance au
  * corps de la requête. Une valeur inconnue retombe sur la valeur par défaut au
  * lieu d'être injectée telle quelle dans la consigne envoyée à Suno.
+ *
+ * Deux principes tirés de la documentation de Suno, et qui expliquent la forme
+ * de ce fichier :
+ *
+ *   1. Les tags de style doivent être en anglais. Suno les reconnaît « bien
+ *      plus fiablement » qu'en français. Chaque entrée porte donc un libellé
+ *      affiché et une consigne anglaise, distincts.
+ *
+ *   2. Les genres africains exigent des instruments nommés. L'amapiano « vit ou
+ *      meurt sur son log drum et ses piano stabs », l'afrobeat sur son groove
+ *      ouest-africain et ses cuivres. Sans eux, le résultat dérive vers de la
+ *      dance générique. Les consignes ci-dessous nomment donc les instruments
+ *      caractéristiques de chaque style.
+ *
+ * Seuls figurent ici les styles et les langues que Suno documente comme
+ * fonctionnels. Les genres régionaux non documentés — makossa, bikutsi,
+ * coupé-décalé, zouglou, rumba congolaise, zouk — et les langues sans données
+ * d'entraînement — douala, ewondo, bassa, lingala, wolof, pidgin — ont été
+ * retirés : les proposer revenait à faire dépenser un crédit contre une
+ * promesse que le modèle ne tient pas.
  */
 
-export const GENRES = [
-  "Afrobeats",
-  "Amapiano",
-  "Makossa",
-  "Coupé-Décalé",
-  "Bikutsi",
-  "Zouglou",
-  "Highlife",
-  "Rumba Congolaise",
-  "Afro-Pop",
-  "Gospel Africain",
-  "Pop",
-  "Hip-Hop / Rap",
-  "R&B",
-  "Synthwave / Electro",
-  "Rock",
-  "Zouk",
-  "Reggae / Dancehall",
-] as const;
+export type Genre = {
+  /** Identifiant stable, seul transmis par le navigateur. */
+  id: string;
+  /** Libellé affiché, et conservé dans l'historique des morceaux. */
+  label: string;
+  /** Tags anglais envoyés à Suno, instruments compris. */
+  prompt: string;
+};
 
-export const DEFAULT_GENRE = "Afrobeats";
+export const GENRES: Genre[] = [
+  // --- Afrique, styles documentés par Suno ---
+  {
+    id: "afrobeats",
+    label: "Afrobeats",
+    prompt: "afrobeats, catchy hook, smooth polished production, shekere, talking drum, tropical groove",
+  },
+  {
+    id: "afropop",
+    label: "Afropop",
+    prompt: "afropop, bright melodic hook, radio-ready production, kalimba, light percussion",
+  },
+  {
+    id: "afroswing",
+    label: "Afroswing",
+    prompt: "afroswing, laid-back swung groove, trap-tinged drums, melodic vocal flow",
+  },
+  {
+    id: "classic_afrobeat",
+    label: "Afrobeat classique",
+    prompt: "classic afrobeat, polyrhythmic drums, brass section, funk guitar, call and response, West African groove",
+  },
+  {
+    id: "afro_house",
+    label: "Afro House",
+    prompt: "afro house, tribal drums, deep bassline, organic percussion, festival energy",
+  },
+  {
+    id: "amapiano",
+    label: "Amapiano",
+    prompt: "amapiano, log drum bass, piano stabs, deep house rhythm, hypnotic South African groove",
+  },
+  {
+    id: "gospel_amapiano",
+    label: "Gospel Amapiano",
+    prompt: "gospel amapiano, log drum bass, piano stabs, uplifting choir harmonies",
+  },
+  {
+    id: "highlife",
+    label: "Highlife",
+    prompt: "highlife, jangly guitar lines, horn section, palm-wine groove, warm analog production",
+  },
+  {
+    id: "kwaito",
+    label: "Kwaito",
+    prompt: "kwaito, slow house tempo, deep bass, chanted vocals, township groove",
+  },
+  {
+    id: "nigerian_pop",
+    label: "Pop nigériane",
+    prompt: "nigerian pop, afrobeats-influenced, glossy production, catchy chorus",
+  },
+  {
+    id: "south_african_choral",
+    label: "Chorale sud-africaine",
+    prompt: "south african choral, layered a cappella harmonies, call and response, rich low voices",
+  },
+
+  // --- Styles généralistes, cœur de métier de Suno ---
+  { id: "pop", label: "Pop", prompt: "pop, catchy chorus, polished modern production" },
+  { id: "hiphop", label: "Hip-Hop / Rap", prompt: "hip hop, hard-hitting drums, deep 808 bass, rhythmic vocal delivery" },
+  { id: "rnb", label: "R&B", prompt: "contemporary R&B, smooth vocals, lush chords, laid-back groove" },
+  { id: "soul", label: "Soul", prompt: "soul, warm vintage production, expressive vocals, horn section" },
+  { id: "gospel", label: "Gospel", prompt: "gospel, uplifting choir, hammond organ, powerful lead vocals" },
+  { id: "reggae", label: "Reggae", prompt: "reggae, offbeat guitar skank, deep bassline, relaxed groove" },
+  { id: "dancehall", label: "Dancehall", prompt: "dancehall, syncopated riddim, punchy drums, energetic vocal delivery" },
+  { id: "house", label: "House / Electro", prompt: "house, four-on-the-floor beat, warm synth pads, driving bassline" },
+  { id: "rock", label: "Rock", prompt: "rock, distorted electric guitars, live drums, anthemic chorus" },
+];
+
+export const DEFAULT_GENRE = "afrobeats";
 
 /**
  * Style de voix. `any` laisse Suno décider, ce qui reste le comportement
@@ -37,52 +116,53 @@ export const VOICES = ["any", "female", "male"] as const;
 export type Voice = (typeof VOICES)[number];
 export const DEFAULT_VOICE: Voice = "any";
 
-/**
- * Consigne de voix insérée dans la description envoyée à Suno.
- *
- * En mode non-custom, la description est le seul canal : ni la voix ni la
- * langue n'ont de paramètre dédié dans l'API.
- */
+/** Consigne de voix, en anglais comme le reste des tags. */
 export const VOICE_PROMPT: Record<Voice, string | null> = {
   any: null,
-  female: "voix féminine",
-  male: "voix masculine",
+  female: "female vocals",
+  male: "male vocals",
+};
+
+export type Language = {
+  /** Identifiant stable, seul transmis par le navigateur. */
+  id: string;
+  /** Libellé affiché. */
+  label: string;
+  /** Nom anglais de la langue, tel qu'il part dans la consigne. */
+  prompt: string | null;
 };
 
 /**
- * Langue de chant. `auto` conserve le comportement historique — Suno écrit les
- * paroles dans la langue du texte saisi.
+ * Langues de chant retenues.
  *
- * Les autres valeurs sont les noms de langue tels qu'ils sont affichés et tels
- * qu'ils sont transmis à Suno : pas de table de correspondance à maintenir, et
- * la liste reste lisible dans `prompt_used`.
+ * `auto` conserve le comportement historique : Suno écrit dans la langue du
+ * texte saisi. Parmi les langues africaines, seules le swahili, le yoruba et le
+ * zoulou disposent d'assez de données d'entraînement pour donner un résultat
+ * fiable — ce sont les seules retenues.
  */
-export const LANGUAGES = [
-  "auto",
-  "Français",
-  "Anglais",
-  "Pidgin camerounais",
-  "Lingala",
-  "Douala",
-  "Ewondo",
-  "Bassa",
-  "Wolof",
-  "Swahili",
-  "Espagnol",
-  "Portugais",
-] as const;
+export const LANGUAGES: Language[] = [
+  { id: "auto", label: "Langue de mon texte", prompt: null },
+  { id: "fr", label: "Français", prompt: "French" },
+  { id: "en", label: "Anglais", prompt: "English" },
+  { id: "sw", label: "Swahili", prompt: "Swahili" },
+  { id: "yo", label: "Yoruba", prompt: "Yoruba" },
+  { id: "zu", label: "Zoulou", prompt: "Zulu" },
+  { id: "es", label: "Espagnol", prompt: "Spanish" },
+  { id: "pt", label: "Portugais", prompt: "Portuguese" },
+];
 
-export type Language = (typeof LANGUAGES)[number];
-export const DEFAULT_LANGUAGE: Language = "auto";
+export const DEFAULT_LANGUAGE = "auto";
+
+export function findGenre(id: unknown): Genre {
+  if (typeof id !== "string") return GENRES[0];
+  return GENRES.find((g) => g.id === id) ?? GENRES.find((g) => g.id === DEFAULT_GENRE) ?? GENRES[0];
+}
+
+export function findLanguage(id: unknown): Language {
+  if (typeof id !== "string") return LANGUAGES[0];
+  return LANGUAGES.find((l) => l.id === id) ?? LANGUAGES[0];
+}
 
 export function isVoice(value: unknown): value is Voice {
   return typeof value === "string" && (VOICES as readonly string[]).includes(value);
-}
-
-export function isLanguage(value: unknown): value is Language {
-  return typeof value === "string" && (LANGUAGES as readonly string[]).includes(value);
-}
-
-export function isGenre(value: unknown): value is (typeof GENRES)[number] {
-  return typeof value === "string" && (GENRES as readonly string[]).includes(value);
 }

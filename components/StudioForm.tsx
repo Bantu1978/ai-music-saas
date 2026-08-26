@@ -163,8 +163,8 @@ export default function StudioForm({
               className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
             >
               {GENRES.map((g) => (
-                <option key={g} value={g} className="bg-zinc-900 text-white">
-                  {g}
+                <option key={g.id} value={g.id} className="bg-zinc-900 text-white">
+                  {g.label}
                 </option>
               ))}
             </select>
@@ -203,8 +203,8 @@ export default function StudioForm({
               {/* « auto » est le seul intitulé traduit : les autres sont des noms
                   de langue, identiques dans les deux interfaces. */}
               {LANGUAGES.map((l) => (
-                <option key={l} value={l} className="bg-zinc-900 text-white">
-                  {l === "auto" ? t("languageAuto") : l}
+                <option key={l.id} value={l.id} className="bg-zinc-900 text-white">
+                  {l.id === "auto" ? t("languageAuto") : l.label}
                 </option>
               ))}
             </select>
