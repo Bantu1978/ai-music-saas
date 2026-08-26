@@ -103,10 +103,10 @@
     "chargedInXaf": "Charged in CFA francs (XAF). Other currencies are indicative.",
     "signInFirst": "Sign in to buy credits.",
     "checkoutFailed": "The payment could not be opened. Please try again shortly.",
-    "issue_credited": "Payment confirmed. Your credits have been added to your account.",
+    "issue_credited": "Payment confirmed. Your credits are on your account.",
     "issue_already": "This payment has already been credited to your account.",
-    "issue_pending": "Payment awaiting confirmation. Your credits will arrive shortly.",
-    "issue_unverified": "Confirmation unavailable right now. If you were charged, your credits will be added automatically.",
+    "issue_pending": "Payment recorded. Your operator may take a moment to confirm; your credits will arrive automatically.",
+    "issue_unverified": "Confirmation in progress. If you were charged, your credits will be added automatically.",
     "issue_failed": "The payment did not go through. You have not been charged.",
     "issue_unknown": "Payment not found. Contact us if you were charged."
   },
@@ -154,7 +154,14 @@
     "configOk": "OK",
     "configMissing": "MISSING",
     "configWarning": "WARNING",
-    "configMissingHelp": "Set it in Vercel, then redeploy."
+    "configMissingHelp": "Set it in Vercel, then redeploy.",
+    "pendingPaymentsSection": "Pending payments",
+    "pendingPaymentsCount": "{count} pending",
+    "pendingPaymentsHint": "Only the Notch Pay webhook credits an account, once settlement is final. If a webhook is lost, the payment stays here: \"Check\" asks Notch Pay again and credits if settlement is confirmed.",
+    "checkPayment": "Check",
+    "paymentStillPending": "Notch Pay has not confirmed this settlement yet. Try again later.",
+    "paymentNotOpened": "This payment was never opened at Notch Pay: nothing to check.",
+    "creditsWord": "credits"
   },
   "ResetPassword": {
     "title": "Choose a new password",

@@ -103,10 +103,10 @@
     "chargedInXaf": "Paiement encaissé en francs CFA (XAF). Les autres devises sont indicatives.",
     "signInFirst": "Connectez-vous pour acheter des crédits.",
     "checkoutFailed": "Le paiement n'a pas pu être ouvert. Réessayez dans un instant.",
-    "issue_credited": "Paiement confirmé. Vos crédits ont été ajoutés à votre compte.",
+    "issue_credited": "Paiement confirmé. Vos crédits sont sur votre compte.",
     "issue_already": "Ce paiement a déjà été crédité sur votre compte.",
-    "issue_pending": "Paiement en cours de confirmation. Vos crédits arriveront dans quelques instants.",
-    "issue_unverified": "Confirmation impossible pour le moment. Si le montant a été débité, vos crédits seront ajoutés automatiquement.",
+    "issue_pending": "Paiement enregistré. La confirmation de votre opérateur peut prendre quelques instants ; vos crédits arriveront automatiquement.",
+    "issue_unverified": "Confirmation en cours. Si le montant a été débité, vos crédits seront ajoutés automatiquement.",
     "issue_failed": "Le paiement n'a pas abouti. Aucun montant n'a été débité.",
     "issue_unknown": "Paiement introuvable. Contactez-nous si un montant a été débité."
   },
@@ -154,7 +154,14 @@
     "configOk": "OK",
     "configMissing": "MANQUANT",
     "configWarning": "ATTENTION",
-    "configMissingHelp": "À renseigner dans Vercel, puis redéployer."
+    "configMissingHelp": "À renseigner dans Vercel, puis redéployer.",
+    "pendingPaymentsSection": "Paiements en attente",
+    "pendingPaymentsCount": "{count} en attente",
+    "pendingPaymentsHint": "Seul le webhook de Notch Pay crédite un compte, une fois l'encaissement définitif. Si un webhook se perd, le paiement reste ici : « Vérifier » redemande l'état à Notch Pay et crédite si l'encaissement est confirmé.",
+    "checkPayment": "Vérifier",
+    "paymentStillPending": "Notch Pay n'a pas encore confirmé cet encaissement. Réessayez plus tard.",
+    "paymentNotOpened": "Le paiement n'a jamais été ouvert chez Notch Pay : rien à vérifier.",
+    "creditsWord": "crédits"
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",
