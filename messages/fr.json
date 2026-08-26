@@ -66,7 +66,9 @@
     "noCreditsTitle": "Crédits épuisés",
     "noCreditsBody": "Il vous faut au moins 1 crédit pour composer un morceau. Rechargez votre compte pour continuer.",
     "buyCredits": "Recharger mes crédits",
-    "creditsLeft": "{count} crédit(s) disponible(s)"
+    "creditsLeft": "{count} crédit(s) disponible(s)",
+
+    "creditsUnlimited": "Crédits illimités (admin)"
   },
   "Dashboard": {
     "title": "Tableau de bord",

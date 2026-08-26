@@ -3,6 +3,7 @@ import { Link } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { ensureProfile } from "@/lib/profile";
+import { isAdmin } from "@/lib/admin";
 import StudioForm from "@/components/StudioForm";
 import SignInPrompt from "@/components/SignInPrompt";
 
@@ -37,7 +38,11 @@ export default async function StudioPage() {
   const profile = await ensureProfile(getSupabaseAdmin(), user);
   const credits = profile?.credits ?? 0;
 
-  if (credits < 1) {
+  // Les administrateurs ne sont jamais arrêtés par un solde vide : /api/generate
+  // applique la même exemption, cette garde ne fait que lui rester cohérente.
+  const unlimited = isAdmin(user);
+
+  if (!unlimited && credits < 1) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-20 text-center">
         <h1 className="text-3xl font-extrabold mb-2">{t("title")}</h1>
@@ -55,5 +60,5 @@ export default async function StudioPage() {
     );
   }
 
-  return <StudioForm initialCredits={credits} />;
+  return <StudioForm initialCredits={credits} unlimited={unlimited} />;
 }
