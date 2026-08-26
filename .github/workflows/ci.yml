@@ -1,0 +1,41 @@
+name: CI
+
+# Vérification systématique des PR : jusqu'ici rien ne relevait les erreurs de
+# types ou de lint, seuls les déploiements Vercel tournaient.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Une nouvelle poussée annule la vérification encore en cours sur la même réf.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Types & lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # Aligné sur la version utilisée en développement.
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types
+        run: npm run typecheck
+
+      # ESLint sort en échec sur les erreurs, pas sur les avertissements :
+      # ceux qui subsistent restent visibles dans le journal sans bloquer.
+      - name: Lint
+        run: npm run lint
