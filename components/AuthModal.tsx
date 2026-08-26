@@ -43,6 +43,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        // Sans `select_account`, Google réutilise silencieusement la session
+        // déjà ouverte dans le navigateur : l'utilisateur se retrouve connecté
+        // avec un compte qu'il n'a pas choisi, et sans moyen d'en changer.
+        queryParams: { prompt: "select_account" },
       },
     });
   };

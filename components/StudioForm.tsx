@@ -34,7 +34,14 @@ interface SongResult {
   lyrics?: string;
 }
 
-export default function StudioForm({ initialCredits }: { initialCredits: number }) {
+export default function StudioForm({
+  initialCredits,
+  // Vrai pour un administrateur : le solde n'est ni décompté ni bloquant.
+  unlimited = false,
+}: {
+  initialCredits: number;
+  unlimited?: boolean;
+}) {
   const t = useTranslations("Studio");
   const [credits, setCredits] = useState(initialCredits);
 
@@ -110,7 +117,7 @@ export default function StudioForm({ initialCredits }: { initialCredits: number 
           <p className="mt-1 text-zinc-400 text-sm">{t("subtitle")}</p>
         </div>
         <span className="bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-xs font-black px-3 py-1.5 rounded-full whitespace-nowrap">
-          🎵 {t("creditsLeft", { count: credits })}
+          🎵 {unlimited ? t("creditsUnlimited") : t("creditsLeft", { count: credits })}
         </span>
       </div>
 
@@ -176,7 +183,7 @@ export default function StudioForm({ initialCredits }: { initialCredits: number 
 
         <button
           type="submit"
-          disabled={loading || credits < 1}
+          disabled={loading || (!unlimited && credits < 1)}
           className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2 text-base"
         >
           {loading ? (
@@ -189,7 +196,7 @@ export default function StudioForm({ initialCredits }: { initialCredits: number 
         </button>
       </form>
 
-      {credits < 1 && !loading && (
+      {!unlimited && credits < 1 && !loading && (
         <div className="w-full mt-6 p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-center">
           <p className="font-bold text-amber-300 mb-1">{t("noCreditsTitle")}</p>
           <p className="text-amber-200/80 text-sm mb-4">{t("noCreditsBody")}</p>

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { adjustCredits } from "@/lib/credits";
 import { SONG_STATUS } from "@/lib/songStatus";
+import { isAdmin } from "@/lib/admin";
 import type { SunoGenerateResponse } from "@/lib/suno";
 
 const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
@@ -71,28 +72,39 @@ export async function POST(req: NextRequest) {
 
     // 3. Réservation du crédit AVANT l'appel externe (évite la double génération),
     //    remboursé plus bas si Suno refuse la tâche.
-    const reservation = await adjustCredits(admin, userId, -1);
+    //
+    //    Les administrateurs échappent au décompte : ils doivent pouvoir
+    //    éprouver la chaîne de génération en production sans qu'un solde vide
+    //    les arrête, et sans s'accorder des crédits pour cela.
+    const unlimited = isAdmin(user);
+    let creditsRemaining: number | null = null;
 
-    if (!reservation.ok) {
-      if (reservation.reason === "not_found") {
-        return NextResponse.json({ error: "Profil utilisateur introuvable." }, { status: 404 });
-      }
-      if (reservation.reason === "insufficient") {
-        return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
-      }
-      if (reservation.reason === "error") {
-        // Refus de la base (trigger, contrainte, RLS) : à ne pas maquiller en
-        // problème de concurrence, le message est nécessaire au diagnostic.
-        console.error("[generate] débit refusé par la base :", reservation.message);
+    if (!unlimited) {
+      const reservation = await adjustCredits(admin, userId, -1);
+
+      if (!reservation.ok) {
+        if (reservation.reason === "not_found") {
+          return NextResponse.json({ error: "Profil utilisateur introuvable." }, { status: 404 });
+        }
+        if (reservation.reason === "insufficient") {
+          return NextResponse.json({ error: "Crédits insuffisants." }, { status: 403 });
+        }
+        if (reservation.reason === "error") {
+          // Refus de la base (trigger, contrainte, RLS) : à ne pas maquiller en
+          // problème de concurrence, le message est nécessaire au diagnostic.
+          console.error("[generate] débit refusé par la base :", reservation.message);
+          return NextResponse.json(
+            { error: `Débit du crédit refusé : ${reservation.message}` },
+            { status: 500 }
+          );
+        }
         return NextResponse.json(
-          { error: `Débit du crédit refusé : ${reservation.message}` },
-          { status: 500 }
+          { error: "Génération déjà en cours, veuillez réessayer." },
+          { status: 409 }
         );
       }
-      return NextResponse.json(
-        { error: "Génération déjà en cours, veuillez réessayer." },
-        { status: 409 }
-      );
+
+      creditsRemaining = reservation.credits;
     }
 
     // 4. Trace de la chanson en statut 'pending'
@@ -113,7 +125,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (songError || !song) {
-      await adjustCredits(admin, userId, 1); // remboursement
+      if (!unlimited) await adjustCredits(admin, userId, 1); // remboursement
       return NextResponse.json(
         { error: "Erreur lors de la création de la chanson." },
         { status: 500 }
@@ -173,7 +185,7 @@ export async function POST(req: NextRequest) {
     // 6. Échec côté Suno : on rembourse le crédit et on marque la chanson en échec.
     if (!taskId) {
       await admin.from("songs").update({ status: SONG_STATUS.failed }).eq("id", song.id);
-      await adjustCredits(admin, userId, 1);
+      if (!unlimited) await adjustCredits(admin, userId, 1);
       return NextResponse.json({ error: sunoError }, { status: 502 });
     }
 
@@ -186,19 +198,24 @@ export async function POST(req: NextRequest) {
       console.warn("[generate] task_id non persisté :", taskIdError.message);
     }
 
-    // 7. Journal de la transaction de crédit
-    await admin.from("credit_transactions").insert({
-      user_id: userId,
-      amount: -1,
-      description: `Génération de la chanson: ${song.title}`,
-    });
+    // 7. Journal de la transaction de crédit — rien à journaliser quand aucun
+    //    crédit n'a été débité.
+    if (!unlimited) {
+      await admin.from("credit_transactions").insert({
+        user_id: userId,
+        amount: -1,
+        description: `Génération de la chanson: ${song.title}`,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       taskId,
       songId: song.id,
       prompt: fullPrompt,
-      creditsRemaining: reservation.credits,
+      // null pour un administrateur : le client laisse alors son affichage
+      // de solde inchangé.
+      creditsRemaining,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erreur serveur";
