@@ -14,6 +14,9 @@ const PAGE_SIZE = 20;
 /** Générations en attente remontées au triage. */
 const STUCK_LIMIT = 30;
 
+/** Paiements en attente remontés au triage. */
+const PENDING_PAYMENTS_LIMIT = 30;
+
 /**
  * Ligne de `credit_transactions` accompagnée du profil joint.
  *
@@ -30,6 +33,18 @@ type TransactionRow = {
 };
 
 type ProfileRef = { email: string | null; full_name: string | null };
+
+/** Paiement ouvert et jamais dénoué, avec son acheteur. */
+type PendingPaymentRow = {
+  reference: string;
+  pack: string;
+  credits: number;
+  amount: number;
+  currency: string;
+  provider_reference: string | null;
+  created_at: string;
+  profiles: ProfileRef | ProfileRef[] | null;
+};
 
 /** Génération restée en attente, avec son propriétaire. */
 type StuckRow = {
@@ -99,6 +114,7 @@ export async function GET(req: NextRequest) {
     { data: songs, error: songsError },
     { data: rawTransactions, error: transactionsError },
     { data: rawStuck, error: stuckError },
+    { data: rawPending, error: pendingError },
   ] = await Promise.all([
     countQuery,
     admin
@@ -119,16 +135,26 @@ export async function GET(req: NextRequest) {
       .eq("status", SONG_STATUS.pending)
       .order("created_at", { ascending: false })
       .limit(STUCK_LIMIT),
+    // Paiements ouverts et jamais dénoués. Depuis que seul le webhook crédite,
+    // un webhook perdu laisse un client qui a payé sans ses crédits : c'est ici
+    // que cela doit se voir.
+    admin
+      .from("payments")
+      .select("reference, pack, credits, amount, currency, provider_reference, created_at, profiles(email, full_name)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(PENDING_PAYMENTS_LIMIT),
   ]);
 
-  if (countError || songsError || transactionsError || stuckError) {
+  if (countError || songsError || transactionsError || stuckError || pendingError) {
     return NextResponse.json(
       {
         error:
           countError?.message ||
           songsError?.message ||
           transactionsError?.message ||
-          stuckError?.message,
+          stuckError?.message ||
+          pendingError?.message,
       },
       { status: 500 }
     );
@@ -179,8 +205,25 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const pendingPayments = ((rawPending ?? []) as PendingPaymentRow[]).map((row) => {
+    const profile = firstProfile(row.profiles);
+    return {
+      reference: row.reference,
+      pack: row.pack,
+      credits: row.credits,
+      amount: row.amount,
+      currency: row.currency,
+      createdAt: row.created_at,
+      // Sans référence fournisseur, l'ouverture n'a jamais abouti : il n'y a
+      // rien à vérifier chez Notch Pay.
+      checkable: Boolean(row.provider_reference),
+      user: profile?.email || profile?.full_name || null,
+    };
+  });
+
   return NextResponse.json({
     config: configHealth(),
+    pendingPayments,
     profiles,
     total,
     // Page effectivement servie : elle peut différer de celle demandée si

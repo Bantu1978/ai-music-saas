@@ -122,3 +122,28 @@ export async function settlePayment(
 
   return "credited";
 }
+
+/**
+ * Lecture seule de l'état d'un paiement, pour informer le client à son retour.
+ *
+ * Ne crédite rien, et n'interroge même pas Notch Pay : elle ne fait que
+ * rapporter ce que notre journal sait déjà. C'est le pendant de la règle
+ * « seul le webhook crédite » — voir le commentaire de la route de retour.
+ */
+export async function readPaymentOutcome(
+  admin: SupabaseClient,
+  reference: string
+): Promise<Denouement> {
+  if (!REFERENCE_VALIDE.test(reference)) return "unknown";
+
+  const { data: row } = await admin
+    .from("payments")
+    .select("status")
+    .or(`reference.eq.${reference},provider_reference.eq.${reference}`)
+    .maybeSingle<{ status: string }>();
+
+  if (!row) return "unknown";
+  if (row.status === "complete") return "credited";
+  if (row.status === "failed") return "failed";
+  return "pending";
+}

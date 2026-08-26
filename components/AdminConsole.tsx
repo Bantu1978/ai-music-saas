@@ -27,6 +27,19 @@ type Transaction = {
   user: string | null;
 };
 
+/** Paiement ouvert et jamais dénoué. */
+type PendingPayment = {
+  reference: string;
+  pack: string;
+  credits: number;
+  amount: number;
+  currency: string;
+  createdAt: string;
+  /** Une référence fournisseur existe : Notch Pay peut être interrogé. */
+  checkable: boolean;
+  user: string | null;
+};
+
 /** Génération restée en attente, jamais réconciliée. */
 type StuckSong = {
   id: string;
@@ -60,6 +73,7 @@ type AdminData = {
   songs: Song[];
   transactions: Transaction[];
   stuckSongs: StuckSong[];
+  pendingPayments: PendingPayment[];
   config: ConfigEntree[];
 };
 
@@ -83,6 +97,7 @@ async function loadAdminData(query: string, page: number): Promise<AdminData> {
     songs: data.songs ?? [],
     transactions: data.transactions ?? [],
     stuckSongs: data.stuckSongs ?? [],
+    pendingPayments: data.pendingPayments ?? [],
     config: data.config ?? [],
   };
 }
@@ -103,6 +118,7 @@ export default function AdminConsole() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stuckSongs, setStuckSongs] = useState<StuckSong[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [config, setConfig] = useState<ConfigEntree[]>([]);
   // Identifiant de la génération en cours de traitement, pour n'immobiliser que
   // sa propre ligne plutôt que tout le panneau.
@@ -138,6 +154,7 @@ export default function AdminConsole() {
     setSongs(data.songs);
     setTransactions(data.transactions);
     setStuckSongs(data.stuckSongs);
+    setPendingPayments(data.pendingPayments);
     setConfig(data.config);
     setError(null);
   };
@@ -208,6 +225,34 @@ export default function AdminConsole() {
       // fini. Le dire explicitement évite de cliquer en boucle.
       if (data.outcome === "still_pending") {
         setError(t("stillPending"));
+        return;
+      }
+
+      setBusy(true);
+      setReloadToken((token) => token + 1);
+    } finally {
+      setResolving(null);
+    }
+  };
+
+  const handleCheckPayment = async (reference: string) => {
+    setResolving(reference);
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || `Error ${res.status}`);
+        return;
+      }
+      // « pending » n'est pas une erreur : Notch Pay n'a simplement pas encore
+      // confirmé l'encaissement. Le dire évite de cliquer en boucle.
+      if (data.denouement === "pending" || data.denouement === "unverified") {
+        setError(t("paymentStillPending"));
         return;
       }
 
@@ -402,6 +447,47 @@ export default function AdminConsole() {
               </section>
             );
           })()}
+
+          {pendingPayments.length > 0 && (
+            <section className="bg-zinc-900 border-2 border-sky-500/40 rounded-2xl p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                <h2 className="text-xl font-bold text-sky-400">{t("pendingPaymentsSection")}</h2>
+                <p className="text-xs text-zinc-500">
+                  {t("pendingPaymentsCount", { count: pendingPayments.length })}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-400 mb-5 max-w-2xl leading-relaxed">
+                {t("pendingPaymentsHint")}
+              </p>
+
+              <div className="space-y-3">
+                {pendingPayments.map((p) => (
+                  <div
+                    key={p.reference}
+                    className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex flex-wrap items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm">
+                        {p.credits} {t("creditsWord")} — {p.amount.toLocaleString("fr-FR")} {p.currency}
+                      </h3>
+                      <p className="text-xs text-zinc-400">
+                        {p.user || t("unknownUser")} • {formatDate(p.createdAt)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => handleCheckPayment(p.reference)}
+                      disabled={!p.checkable || resolving === p.reference}
+                      title={p.checkable ? undefined : t("paymentNotOpened")}
+                      className="bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-xs px-3 py-1.5 rounded-lg font-bold transition shrink-0"
+                    >
+                      {t("checkPayment")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {stuckSongs.length > 0 && (
             <section className="bg-zinc-900 border-2 border-amber-500/40 rounded-2xl p-6">
