@@ -108,7 +108,8 @@
     "issue_pending": "Paiement enregistré. La confirmation de votre opérateur peut prendre quelques instants ; vos crédits arriveront automatiquement.",
     "issue_unverified": "Confirmation en cours. Si le montant a été débité, vos crédits seront ajoutés automatiquement.",
     "issue_failed": "Le paiement n'a pas abouti. Aucun montant n'a été débité.",
-    "issue_unknown": "Paiement introuvable. Contactez-nous si un montant a été débité."
+    "issue_unknown": "Paiement introuvable. Contactez-nous si un montant a été débité.",
+    "awaitingConfirmation": "Vérification en cours... cette page se mettra à jour toute seule."
   },
   "Admin": {
     "title": "Console d'administration",
