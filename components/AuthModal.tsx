@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/src/i18n/navigation";
 import { SIGNUP_CREDITS } from "@/lib/signupOffer";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +18,7 @@ const MIN_PASSWORD_LENGTH = 8;
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const t = useTranslations("Auth");
   const locale = useLocale();
+  const router = useRouter();
   const supabase = createClient();
 
   const [mode, setMode] = useState<Mode>("signin");
@@ -29,7 +31,23 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   if (!isOpen) return null;
 
+  // Chemin absolu, exigé par Supabase pour ses redirections d'authentification.
   const nextPath = `/${locale}/generate`;
+
+  /**
+   * Entrée dans le studio après authentification.
+   *
+   * Navigation douce plutôt qu'un rechargement complet : le cookie de session
+   * est déjà posé quand Supabase rend la main, et la requête de rendu serveur
+   * le transporte. Le `refresh` qui suit force les composants serveur à se
+   * rejouer avec cette session — sans lui, la garde du studio pourrait
+   * répondre à partir d'un rendu antérieur à la connexion.
+   */
+  const entrerDansLeStudio = () => {
+    onClose();
+    router.push("/generate");
+    router.refresh();
+  };
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -102,9 +120,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           password,
         });
         if (signInError) throw signInError;
-        onClose();
         // Le profil est garanti côté serveur à l'entrée du studio.
-        window.location.assign(nextPath);
+        entrerDansLeStudio();
         return;
       }
 
@@ -125,8 +142,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         return;
       }
 
-      onClose();
-      window.location.assign(nextPath);
+      entrerDansLeStudio();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
