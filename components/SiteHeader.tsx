@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { User } from "@supabase/supabase-js";
-import { Link, useRouter } from "@/src/i18n/navigation";
+import { Link, useRouter, usePathname } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import AuthModal from "./AuthModal";
@@ -19,6 +19,7 @@ type Profile = { full_name: string | null; credits: number };
 export default function SiteHeader() {
   const t = useTranslations("Nav");
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -26,22 +27,54 @@ export default function SiteHeader() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [admin, setAdmin] = useState(false);
 
+  // Incrémenté au retour sur l'onglet, pour redemander le solde.
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  const userId = user?.id ?? null;
+
+  // 1. Identité. Une seule fois : c'est l'abonnement Supabase qui signale
+  //    ensuite les connexions et déconnexions.
   useEffect(() => {
     let active = true;
 
-    const loadProfile = async (current: User | null) => {
-      if (!current) {
-        if (active) {
-          setProfile(null);
-          setAdmin(false);
-        }
-        return;
-      }
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setUser(data.user);
+    });
 
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const current = session?.user ?? null;
+      setUser(current);
+      // Purge depuis le rappel, donc hors du corps d'un effet.
+      if (!current) {
+        setProfile(null);
+        setAdmin(false);
+      }
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 2. Solde et statut d'administrateur.
+  //
+  //    Rejoué à chaque navigation et au retour sur l'onglet. L'en-tête vit dans
+  //    le layout : il ne se remonte jamais tant qu'on reste dans la même langue,
+  //    si bien qu'avec les seules dépendances d'origine la pastille conservait
+  //    pour toute la session la valeur lue au premier chargement. Un crédit
+  //    accordé par un administrateur restait alors invisible jusqu'à un F5.
+  useEffect(() => {
+    if (!userId) return;
+
+    let active = true;
+
+    (async () => {
       const { data } = await supabase
         .from("profiles")
         .select("full_name, credits")
-        .eq("id", current.id)
+        .eq("id", userId)
         .single();
       if (active) setProfile(data);
 
@@ -55,25 +88,32 @@ export default function SiteHeader() {
       } catch {
         if (active) setAdmin(false);
       }
-    };
-
-    supabase.auth.getUser().then(({ data }) => {
-      if (!active) return;
-      setUser(data.user);
-      loadProfile(data.user);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      const current = session?.user ?? null;
-      setUser(current);
-      loadProfile(current);
-    });
+    })();
 
     return () => {
       active = false;
-      listener.subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, pathname, refreshToken]);
+
+  // 3. Retour sur l'onglet : le solde a pu changer pendant l'absence, c'est
+  //    précisément le cas d'un crédit accordé par un administrateur pendant
+  //    que le client attend. Les écritures d'état partent d'un gestionnaire
+  //    d'événement, jamais du corps d'un effet.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        setRefreshToken((token) => token + 1);
+      }
+    };
+
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const handleSignOut = async () => {
