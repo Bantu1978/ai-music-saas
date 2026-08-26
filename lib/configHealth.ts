@@ -122,12 +122,22 @@ export function configHealth(): ConfigEntree[] {
     })),
 
     entree("app_url", "Adresse publique du site", ["APP_URL", "NEXT_PUBLIC_APP_URL"], true, (v) => {
-      // Une adresse locale en production casse deux choses d'un coup : le retour
-      // de paiement et le rappel de Suno. Le dire vaut mieux qu'une case verte.
-      const locale = /localhost|127\.0\.0\.1/i.test(v);
-      return locale
-        ? { statut: "attention", note: `${v} — inutilisable en production` }
-        : { note: v };
+      // Trois défauts se ressemblent à l'œil et cassent tous le paiement :
+      // une adresse locale, une adresse sans schéma, une adresse illisible.
+      // Notch Pay refuse alors la requête avec « The callback field must be a
+      // valid URL », message qui ne dit pas d'où vient le problème.
+      if (!/^https?:\/\//i.test(v)) {
+        return { statut: "attention", note: `${v} — il manque https:// en tête` };
+      }
+      try {
+        const url = new URL(v);
+        if (/localhost|127\.0\.0\.1/i.test(url.hostname)) {
+          return { statut: "attention", note: `${v} — inutilisable en production` };
+        }
+        return { note: url.origin };
+      } catch {
+        return { statut: "attention", note: `${v} — adresse illisible` };
+      }
     }),
 
     entree("admins", "Administrateurs autorisés", ["ADMIN_EMAILS"], true, (v) => {

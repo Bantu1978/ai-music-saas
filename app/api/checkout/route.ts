@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     currency: CHARGE_CURRENCY,
     reference,
     description: `BAKUMELO — ${pack.credits} crédits de génération`,
-    callback: `${appBaseUrl()}/api/payments/callback?locale=${locale}`,
+    callback: `${appBaseUrl(req.nextUrl.origin)}/api/payments/callback?locale=${locale}`,
     email: user.email,
   });
 
