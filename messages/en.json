@@ -13,7 +13,30 @@
     "title": "Sign in to BAKUMELO",
     "subtitle": "Sign in to claim your free credit and start composing.",
     "google": "Continue with Google",
-    "close": "Close"
+    "close": "Close",
+    "tabSignIn": "Sign in",
+    "tabSignUp": "Create account",
+    "separator": "or",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Ex: Awa Diallo",
+    "email": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "8 characters minimum",
+    "submitSignIn": "Sign in",
+    "submitSignUp": "Create my account",
+    "pending": "Please wait...",
+    "passwordTooShort": "Password must be at least 8 characters.",
+    "emailRequired": "Email and password are required.",
+    "confirmSent": "Account created. Open the confirmation email we just sent you, then sign in.",
+    "noAccount": "No account yet?",
+    "hasAccount": "Already have an account?",
+    "forgotPassword": "Forgot your password?",
+    "resetTitle": "Reset your password",
+    "resetSubtitle": "Enter your email address and we will send you a link to choose a new password.",
+    "resetSubmit": "Send the link",
+    "resetSent": "If an account exists for this address, a reset link has just been sent. Remember to check your spam folder.",
+    "backToSignIn": "Back to sign in"
   },
   "HomePage": {
     "badge": "🎁 1 free generation credit on signup!",
@@ -38,7 +61,11 @@
     "download": "Download MP3",
     "signedOut": "Sign in to compose your track.",
     "timeout": "Timed out. Please try again.",
-    "genericError": "An error occurred during generation."
+    "genericError": "An error occurred during generation.",
+    "noCreditsTitle": "Out of credits",
+    "noCreditsBody": "You need at least 1 credit to compose a track. Top up your account to continue.",
+    "buyCredits": "Top up my credits",
+    "creditsLeft": "{count} credit(s) available"
   },
   "Dashboard": {
     "title": "Dashboard",
@@ -73,5 +100,20 @@
     "addCreditsPrompt": "How many credits do you want to add?",
     "songsSection": "Latest generations",
     "forbidden": "Administrators only."
+  },
+  "ResetPassword": {
+    "title": "Choose a new password",
+    "subtitle": "Enter your new password, then confirm it.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "placeholder": "8 characters minimum",
+    "submit": "Update",
+    "pending": "Updating...",
+    "tooShort": "Password must be at least 8 characters.",
+    "mismatch": "The two passwords do not match.",
+    "success": "Password updated. Redirecting to the studio...",
+    "invalidTitle": "Invalid or expired link",
+    "invalidBody": "This reset link is no longer valid. Request a new one from the sign-in window.",
+    "backHome": "Back to home"
   }
 }

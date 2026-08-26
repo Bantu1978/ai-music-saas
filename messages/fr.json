@@ -13,7 +13,30 @@
     "title": "Connexion à BAKUMELO",
     "subtitle": "Connectez-vous pour profiter de votre crédit gratuit et composer votre musique.",
     "google": "Continuer avec Google",
-    "close": "Fermer"
+    "close": "Fermer",
+    "tabSignIn": "Se connecter",
+    "tabSignUp": "Créer un compte",
+    "separator": "ou",
+    "fullName": "Nom complet",
+    "fullNamePlaceholder": "Ex: Awa Diallo",
+    "email": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "password": "Mot de passe",
+    "passwordPlaceholder": "8 caractères minimum",
+    "submitSignIn": "Se connecter",
+    "submitSignUp": "Créer mon compte",
+    "pending": "Veuillez patienter...",
+    "passwordTooShort": "Le mot de passe doit faire au moins 8 caractères.",
+    "emailRequired": "Email et mot de passe sont requis.",
+    "confirmSent": "Compte créé. Ouvrez l'email de confirmation que nous venons de vous envoyer, puis connectez-vous.",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Vous avez déjà un compte ?",
+    "forgotPassword": "Mot de passe oublié ?",
+    "resetTitle": "Réinitialiser le mot de passe",
+    "resetSubtitle": "Saisissez votre adresse email : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+    "resetSubmit": "Envoyer le lien",
+    "resetSent": "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé. Pensez à regarder vos spams.",
+    "backToSignIn": "Retour à la connexion"
   },
   "HomePage": {
     "badge": "🎁 1 crédit de génération offert à l'inscription !",
@@ -38,7 +61,11 @@
     "download": "Télécharger le MP3",
     "signedOut": "Connectez-vous pour composer votre morceau.",
     "timeout": "Délai dépassé. Merci de réessayer.",
-    "genericError": "Une erreur est survenue pendant la génération."
+    "genericError": "Une erreur est survenue pendant la génération.",
+    "noCreditsTitle": "Crédits épuisés",
+    "noCreditsBody": "Il vous faut au moins 1 crédit pour composer un morceau. Rechargez votre compte pour continuer.",
+    "buyCredits": "Recharger mes crédits",
+    "creditsLeft": "{count} crédit(s) disponible(s)"
   },
   "Dashboard": {
     "title": "Tableau de bord",
@@ -73,5 +100,20 @@
     "addCreditsPrompt": "Combien de crédits souhaitez-vous ajouter ?",
     "songsSection": "Dernières générations",
     "forbidden": "Accès réservé aux administrateurs."
+  },
+  "ResetPassword": {
+    "title": "Choisir un nouveau mot de passe",
+    "subtitle": "Saisissez votre nouveau mot de passe, puis confirmez-le.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "placeholder": "8 caractères minimum",
+    "submit": "Mettre à jour",
+    "pending": "Mise à jour...",
+    "tooShort": "Le mot de passe doit faire au moins 8 caractères.",
+    "mismatch": "Les deux mots de passe ne correspondent pas.",
+    "success": "Mot de passe mis à jour. Redirection vers le studio...",
+    "invalidTitle": "Lien invalide ou expiré",
+    "invalidBody": "Ce lien de réinitialisation n'est plus valable. Demandez-en un nouveau depuis la fenêtre de connexion.",
+    "backHome": "Retour à l'accueil"
   }
 }

@@ -3,6 +3,7 @@ import { Link } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { SONG_STATUS } from "@/lib/songStatus";
+import { ensureProfile } from "@/lib/profile";
 
 // Les chiffres affichés proviennent de la base : l'ancienne version montrait
 // des statistiques inventées en dur (12 chansons, 48 crédits, abonnement Pro).
@@ -25,8 +26,8 @@ export default async function DashboardPage() {
 
   const admin = getSupabaseAdmin();
 
-  const [{ data: profile }, { data: songs }] = await Promise.all([
-    admin.from("profiles").select("credits").eq("id", user.id).single(),
+  const [profile, { data: songs }] = await Promise.all([
+    ensureProfile(admin, user),
     admin
       .from("songs")
       .select("id, title, genre, status, audio_url, created_at")
