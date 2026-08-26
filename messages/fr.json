@@ -141,7 +141,18 @@
     "refundConfirm": "Abandonner cette génération et rendre le crédit au client ?",
     "stillPending": "Suno n'a pas encore terminé cette génération. Réessayez plus tard.",
     "noTaskRef": "Aucune référence de tâche : seul le remboursement est possible.",
-    "untitled": "Sans titre"
+    "untitled": "Sans titre",
+    "configSection": "Configuration",
+    "configHint": "Ce que le serveur voit réellement. Aucune valeur secrète n'est affichée : seulement si le réglage est renseigné, et sous quel nom. Une variable ajoutée dans Vercel ne prend effet qu'après un redéploiement.",
+    "configAllGood": "tout est en place",
+    "configProblems": "{count} point(s) à regarder",
+    "configWhat": "Réglage",
+    "configState": "État",
+    "configDetail": "Détail",
+    "configOk": "OK",
+    "configMissing": "MANQUANT",
+    "configWarning": "ATTENTION",
+    "configMissingHelp": "À renseigner dans Vercel, puis redéployer."
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",

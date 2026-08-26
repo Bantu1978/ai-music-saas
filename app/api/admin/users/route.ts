@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { SONG_STATUS } from "@/lib/songStatus";
+import { configHealth } from "@/lib/configHealth";
 
 /** Nombre de mouvements de crédits remontés au journal. */
 const TRANSACTIONS_LIMIT = 25;
@@ -179,6 +180,7 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({
+    config: configHealth(),
     profiles,
     total,
     // Page effectivement servie : elle peut différer de celle demandée si

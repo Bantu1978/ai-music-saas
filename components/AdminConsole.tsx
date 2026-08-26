@@ -38,6 +38,17 @@ type StuckSong = {
   user: string | null;
 };
 
+/** Un réglage attendu par le serveur, et son état réel. */
+type ConfigEntree = {
+  id: string;
+  intitule: string;
+  requis: boolean;
+  statut: "ok" | "manquant" | "attention";
+  source: string | null;
+  noms: string[];
+  note: string | null;
+};
+
 type AdminData = {
   profiles: Profile[];
   /** Total hors pagination, pour calculer le nombre de pages. */
@@ -49,6 +60,7 @@ type AdminData = {
   songs: Song[];
   transactions: Transaction[];
   stuckSongs: StuckSong[];
+  config: ConfigEntree[];
 };
 
 /**
@@ -71,6 +83,7 @@ async function loadAdminData(query: string, page: number): Promise<AdminData> {
     songs: data.songs ?? [],
     transactions: data.transactions ?? [],
     stuckSongs: data.stuckSongs ?? [],
+    config: data.config ?? [],
   };
 }
 
@@ -90,6 +103,7 @@ export default function AdminConsole() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stuckSongs, setStuckSongs] = useState<StuckSong[]>([]);
+  const [config, setConfig] = useState<ConfigEntree[]>([]);
   // Identifiant de la génération en cours de traitement, pour n'immobiliser que
   // sa propre ligne plutôt que tout le panneau.
   const [resolving, setResolving] = useState<string | null>(null);
@@ -124,6 +138,7 @@ export default function AdminConsole() {
     setSongs(data.songs);
     setTransactions(data.transactions);
     setStuckSongs(data.stuckSongs);
+    setConfig(data.config);
     setError(null);
   };
 
@@ -316,6 +331,77 @@ export default function AdminConsole() {
               </div>
             )}
           </section>
+
+          {config.length > 0 && (() => {
+            const problemes = config.filter((c) => c.statut !== "ok");
+            return (
+              <section
+                className={`bg-zinc-900 border-2 rounded-2xl p-6 ${
+                  problemes.some((c) => c.statut === "manquant")
+                    ? "border-red-500/40"
+                    : problemes.length > 0
+                      ? "border-amber-500/40"
+                      : "border-zinc-800"
+                }`}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                  <h2 className="text-xl font-bold text-sky-400">{t("configSection")}</h2>
+                  <p className="text-xs text-zinc-500">
+                    {problemes.length === 0
+                      ? t("configAllGood")
+                      : t("configProblems", { count: problemes.length })}
+                  </p>
+                </div>
+                <p className="text-xs text-zinc-400 mb-5 max-w-2xl leading-relaxed">
+                  {t("configHint")}
+                </p>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-zinc-800 text-zinc-400">
+                      <tr>
+                        <th className="py-3 px-2">{t("configWhat")}</th>
+                        <th className="py-3 px-2">{t("configState")}</th>
+                        <th className="py-3 px-2">{t("configDetail")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {config.map((c) => (
+                        <tr key={c.id}>
+                          <td className="py-3 px-2">
+                            <span className="font-semibold">{c.intitule}</span>
+                            <span className="block text-[11px] text-zinc-500 font-mono">
+                              {c.source ?? c.noms.join(" ou ")}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 whitespace-nowrap">
+                            <span
+                              className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                                c.statut === "manquant"
+                                  ? "bg-red-500/15 text-red-400"
+                                  : c.statut === "attention"
+                                    ? "bg-amber-500/15 text-amber-400"
+                                    : "bg-emerald-500/15 text-emerald-400"
+                              }`}
+                            >
+                              {c.statut === "manquant"
+                                ? t("configMissing")
+                                : c.statut === "attention"
+                                  ? t("configWarning")
+                                  : t("configOk")}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-zinc-400 text-xs">
+                            {c.note ?? (c.requis ? t("configMissingHelp") : "—")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            );
+          })()}
 
           {stuckSongs.length > 0 && (
             <section className="bg-zinc-900 border-2 border-amber-500/40 rounded-2xl p-6">
