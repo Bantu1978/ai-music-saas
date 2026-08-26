@@ -67,7 +67,6 @@
     "noCreditsBody": "You need at least 1 credit to compose a track. Top up your account to continue.",
     "buyCredits": "Top up my credits",
     "creditsLeft": "{count} credit(s) available",
-
     "creditsUnlimited": "Unlimited credits (admin)"
   },
   "Dashboard": {
@@ -102,7 +101,14 @@
     "addCredits": "+ Add credits",
     "addCreditsPrompt": "How many credits do you want to add?",
     "songsSection": "Latest generations",
-    "forbidden": "Administrators only."
+    "forbidden": "Administrators only.",
+    "transactionsSection": "Credit movements",
+    "transactionsHint": "Last 25 movements",
+    "transactionsEmpty": "No credit movement recorded yet.",
+    "colDate": "Date",
+    "colAmount": "Amount",
+    "colReason": "Reason",
+    "unknownUser": "Deleted account"
   },
   "ResetPassword": {
     "title": "Choose a new password",
