@@ -75,7 +75,8 @@
     "voice_female": "Female voice",
     "voice_male": "Male voice",
     "languageLabel": "Lyrics language",
-    "languageAuto": "Language of my text"
+    "languageAuto": "Language of my text",
+    "experimental": "experimental"
   },
   "Dashboard": {
     "title": "Dashboard",

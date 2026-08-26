@@ -75,7 +75,8 @@
     "voice_female": "Voix féminine",
     "voice_male": "Voix masculine",
     "languageLabel": "Langue des paroles",
-    "languageAuto": "Langue de mon texte"
+    "languageAuto": "Langue de mon texte",
+    "experimental": "expérimental"
   },
   "Dashboard": {
     "title": "Tableau de bord",
