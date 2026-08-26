@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { SONG_STATUS } from "@/lib/songStatus";
+import { extractClips, type SunoRecordInfoResponse } from "@/lib/suno";
 
 /**
  * Suivi d'une génération Suno.
@@ -47,9 +48,9 @@ export async function GET(req: NextRequest) {
     );
 
     const raw = await res.text();
-    let payload: any = null;
+    let payload: SunoRecordInfoResponse | null = null;
     try {
-      payload = JSON.parse(raw);
+      payload = JSON.parse(raw) as SunoRecordInfoResponse;
     } catch {
       // Réponse non-JSON : traitée comme un état transitoire.
       return NextResponse.json({ status: "PENDING" });
@@ -59,9 +60,7 @@ export async function GET(req: NextRequest) {
     const status = taskData.status;
 
     if (status === "SUCCESS" && taskData.response) {
-      const sunoData = taskData.response.sunoData || taskData.response;
-      const clips = Array.isArray(sunoData) ? sunoData : Object.values(sunoData);
-      const clip = clips[0] as any;
+      const clip = extractClips(taskData.response)[0];
 
       const audioUrl =
         clip?.audioUrl || clip?.audio_url || clip?.stream_url || clip?.cdn_url;

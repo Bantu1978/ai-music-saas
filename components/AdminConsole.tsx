@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 type Profile = {
@@ -18,6 +18,20 @@ type Song = {
   audio_url: string | null;
 };
 
+type AdminData = { profiles: Profile[]; songs: Song[] };
+
+/**
+ * Chargement pur, sans état React : le composant décide seul quoi en faire.
+ * C'est ce qui permet à l'effet de montage de ne mettre à jour l'état
+ * qu'après le `await`, sans rendu en cascade.
+ */
+async function loadAdminData(): Promise<AdminData> {
+  const res = await fetch("/api/admin/users");
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return { profiles: data.profiles ?? [], songs: data.songs ?? [] };
+}
+
 export default function AdminConsole() {
   const t = useTranslations("Admin");
 
@@ -26,25 +40,45 @@ export default function AdminConsole() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const apply = (data: AdminData) => {
+    setProfiles(data.profiles);
+    setSongs(data.songs);
     setError(null);
+  };
+
+  // Chargement initial. `loading` vaut déjà true au montage, il n'y a donc rien
+  // à écrire avant le `await` : l'état n'est touché qu'une fois la réponse là.
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const data = await loadAdminData();
+        if (active) apply(data);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Erreur");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Rechargement manuel, déclenché depuis un gestionnaire d'événement : ici le
+  // spinner peut être armé immédiatement.
+  const refresh = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/admin/users");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-      setProfiles(data.profiles ?? []);
-      setSongs(data.songs ?? []);
+      apply(await loadAdminData());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  };
 
   const handleAddCredits = async (userId: string) => {
     const raw = window.prompt(t("addCreditsPrompt"), "5");
@@ -64,7 +98,8 @@ export default function AdminConsole() {
       setError(data.error || `Error ${res.status}`);
       return;
     }
-    fetchData();
+
+    refresh();
   };
 
   return (

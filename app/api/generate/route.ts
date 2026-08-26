@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { adjustCredits } from "@/lib/credits";
 import { SONG_STATUS } from "@/lib/songStatus";
+import type { SunoGenerateResponse } from "@/lib/suno";
 
 const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
 const MAX_PROMPT_LENGTH = 2000;
@@ -150,9 +151,9 @@ export async function POST(req: NextRequest) {
       });
 
       const raw = await sunoRes.text();
-      let payload: any = null;
+      let payload: SunoGenerateResponse | null = null;
       try {
-        payload = JSON.parse(raw);
+        payload = JSON.parse(raw) as SunoGenerateResponse;
       } catch {
         payload = null;
       }
