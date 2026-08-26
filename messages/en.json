@@ -95,7 +95,8 @@
     "buy": "Buy now",
     "packDiscovery": "Discovery Pack",
     "packCreator": "Creator Pack",
-    "packPro": "Pro Pack"
+    "packPro": "Pro Pack",
+    "displayedFor": "Prices shown for {country}, in {currency}."
   },
   "Admin": {
     "title": "Administration Console",
