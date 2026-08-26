@@ -3,26 +3,14 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
-
-const GENRES = [
-  "Afrobeats",
-  "Amapiano",
-  "Makossa",
-  "Coupé-Décalé",
-  "Bikutsi",
-  "Zouglou",
-  "Highlife",
-  "Rumba Congolaise",
-  "Afro-Pop",
-  "Gospel Africain",
-  "Pop",
-  "Hip-Hop / Rap",
-  "R&B",
-  "Synthwave / Electro",
-  "Rock",
-  "Zouk",
-  "Reggae / Dancehall",
-];
+import {
+  GENRES,
+  LANGUAGES,
+  VOICES,
+  DEFAULT_GENRE,
+  DEFAULT_LANGUAGE,
+  DEFAULT_VOICE,
+} from "@/lib/musicOptions";
 
 const POLL_INTERVAL_MS = 4000;
 const MAX_ATTEMPTS = 75; // 75 x 4s = 300s
@@ -46,7 +34,9 @@ export default function StudioForm({
   const [credits, setCredits] = useState(initialCredits);
 
   const [prompt, setPrompt] = useState("");
-  const [genre, setGenre] = useState("Afrobeats");
+  const [genre, setGenre] = useState<string>(DEFAULT_GENRE);
+  const [voice, setVoice] = useState<string>(DEFAULT_VOICE);
+  const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -89,7 +79,7 @@ export default function StudioForm({
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, genre, title }),
+        body: JSON.stringify({ prompt, genre, title, voice, language }),
       });
 
       const data = await res.json();
@@ -175,6 +165,46 @@ export default function StudioForm({
               {GENRES.map((g) => (
                 <option key={g} value={g} className="bg-zinc-900 text-white">
                   {g}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="voice" className="block text-sm font-semibold text-zinc-200 mb-2">
+              {t("voiceLabel")}
+            </label>
+            <select
+              id="voice"
+              value={voice}
+              onChange={(e) => setVoice(e.target.value)}
+              className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
+            >
+              {VOICES.map((v) => (
+                <option key={v} value={v} className="bg-zinc-900 text-white">
+                  {t(`voice_${v}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="language" className="block text-sm font-semibold text-zinc-200 mb-2">
+              {t("languageLabel")}
+            </label>
+            <select
+              id="language"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
+            >
+              {/* « auto » est le seul intitulé traduit : les autres sont des noms
+                  de langue, identiques dans les deux interfaces. */}
+              {LANGUAGES.map((l) => (
+                <option key={l} value={l} className="bg-zinc-900 text-white">
+                  {l === "auto" ? t("languageAuto") : l}
                 </option>
               ))}
             </select>

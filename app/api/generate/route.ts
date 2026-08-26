@@ -5,6 +5,15 @@ import { adjustCredits } from "@/lib/credits";
 import { SONG_STATUS } from "@/lib/songStatus";
 import { isAdmin } from "@/lib/admin";
 import type { SunoGenerateResponse } from "@/lib/suno";
+import {
+  DEFAULT_GENRE,
+  DEFAULT_LANGUAGE,
+  DEFAULT_VOICE,
+  VOICE_PROMPT,
+  isGenre,
+  isLanguage,
+  isVoice,
+} from "@/lib/musicOptions";
 
 const SUNO_GENERATE_URL = "https://api.sunoapi.org/api/v1/generate";
 const MAX_PROMPT_LENGTH = 2000;
@@ -43,7 +52,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Corps de requête invalide." }, { status: 400 });
     }
 
-    const { prompt, genre, mood, title, lyrics } = body as Record<string, unknown>;
+    const { prompt, genre, mood, title, lyrics, voice, language } = body as Record<
+      string,
+      unknown
+    >;
 
     if (typeof prompt !== "string" || prompt.trim().length === 0) {
       return NextResponse.json({ error: "Le sujet de la chanson est requis." }, { status: 400 });
@@ -65,7 +77,17 @@ export async function POST(req: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    const safeGenre = typeof genre === "string" && genre.trim() ? genre.trim() : "Afrobeats";
+    // Genre, voix et langue sont validés contre les listes du studio plutôt que
+    // repris tels quels : ils finissent dans la consigne envoyée à Suno, et rien
+    // n'oblige un appelant à passer par le formulaire.
+    const safeGenre = isGenre(genre) ? genre : DEFAULT_GENRE;
+    const safeVoice = isVoice(voice) ? voice : DEFAULT_VOICE;
+    const safeLanguage = isLanguage(language) ? language : DEFAULT_LANGUAGE;
+
+    const consigneVoix = VOICE_PROMPT[safeVoice];
+    // "auto" laisse Suno suivre la langue du texte saisi, comportement d'avant
+    // l'ajout de ce choix.
+    const consigneLangue = safeLanguage === "auto" ? null : safeLanguage;
     const safeTitle = typeof title === "string" && title.trim() ? title.trim() : "Sans titre";
     const safeMood = typeof mood === "string" && mood.trim() ? mood.trim() : "Energetic";
     const safeLyrics = typeof lyrics === "string" && lyrics.trim() ? lyrics.trim() : null;
@@ -108,7 +130,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Trace de la chanson en statut 'pending'
-    const fullPrompt = `${safeGenre} — ${prompt.trim()}`;
+    const fullPrompt =
+      [safeGenre, consigneVoix, consigneLangue].filter(Boolean).join(" · ") +
+      ` — ${prompt.trim()}`;
 
     const { data: song, error: songError } = await admin
       .from("songs")
@@ -133,11 +157,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Appel réel à l'API Suno.
-    //    Mode non-custom : Suno écrit les paroles et chante à partir de la description,
-    //    le genre et le titre souhaités sont donc injectés dans cette description.
+    //    Mode non-custom : Suno écrit les paroles et chante à partir de la
+    //    description. Celle-ci est le seul canal disponible — ni la voix ni la
+    //    langue n'ont de paramètre dédié dans l'API — donc toutes les consignes
+    //    de style y sont assemblées.
+    const consignes = [`Chanson ${safeGenre}`, `ambiance ${safeMood}`];
+    if (consigneVoix) consignes.push(consigneVoix);
+    if (consigneLangue) consignes.push(`paroles chantées en ${consigneLangue}`);
+
+    const entete = `${consignes.join(", ")}, intitulée "${safeTitle}".`;
+
     const description = safeLyrics
-      ? `Chanson ${safeGenre}, ambiance ${safeMood}, intitulée "${safeTitle}". Paroles imposées :\n${safeLyrics}`
-      : `Chanson ${safeGenre}, ambiance ${safeMood}, intitulée "${safeTitle}". Sujet : ${prompt.trim()}`;
+      ? `${entete} Paroles imposées :\n${safeLyrics}`
+      : `${entete} Sujet : ${prompt.trim()}`;
 
     let taskId: string | undefined;
     let sunoError = "La génération n'a pas pu être lancée.";

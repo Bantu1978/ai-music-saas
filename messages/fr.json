@@ -67,7 +67,13 @@
     "noCreditsBody": "Il vous faut au moins 1 crédit pour composer un morceau. Rechargez votre compte pour continuer.",
     "buyCredits": "Recharger mes crédits",
     "creditsLeft": "{count} crédit(s) disponible(s)",
-    "creditsUnlimited": "Crédits illimités (admin)"
+    "creditsUnlimited": "Crédits illimités (admin)",
+    "voiceLabel": "Style de voix",
+    "voice_any": "Peu importe",
+    "voice_female": "Voix féminine",
+    "voice_male": "Voix masculine",
+    "languageLabel": "Langue des paroles",
+    "languageAuto": "Langue de mon texte"
   },
   "Dashboard": {
     "title": "Tableau de bord",
