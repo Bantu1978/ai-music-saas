@@ -108,7 +108,14 @@
     "colDate": "Date",
     "colAmount": "Amount",
     "colReason": "Reason",
-    "unknownUser": "Deleted account"
+    "unknownUser": "Deleted account",
+    "searchLabel": "Search for a user",
+    "searchPlaceholder": "Search by email or name...",
+    "noResults": "No user matches this search.",
+    "totalUsers": "{count} user(s)",
+    "pagePrevious": "Previous",
+    "pageNext": "Next",
+    "pageStatus": "Page {page} of {pages}"
   },
   "ResetPassword": {
     "title": "Choose a new password",

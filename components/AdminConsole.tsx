@@ -27,19 +27,35 @@ type Transaction = {
   user: string | null;
 };
 
-type AdminData = { profiles: Profile[]; songs: Song[]; transactions: Transaction[] };
+type AdminData = {
+  profiles: Profile[];
+  /** Total hors pagination, pour calculer le nombre de pages. */
+  total: number;
+  /** Décidée par l'API : le client ne la duplique pas. */
+  pageSize: number;
+  /** Page réellement servie : l'API borne une demande hors limites. */
+  page: number;
+  songs: Song[];
+  transactions: Transaction[];
+};
 
 /**
  * Chargement pur, sans état React : le composant décide seul quoi en faire.
  * C'est ce qui permet à l'effet de montage de ne mettre à jour l'état
  * qu'après le `await`, sans rendu en cascade.
  */
-async function loadAdminData(): Promise<AdminData> {
-  const res = await fetch("/api/admin/users");
+async function loadAdminData(query: string, page: number): Promise<AdminData> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (query) params.set("q", query);
+
+  const res = await fetch(`/api/admin/users?${params}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return {
     profiles: data.profiles ?? [],
+    total: data.total ?? 0,
+    pageSize: data.pageSize || 20,
+    page: data.page || 1,
     songs: data.songs ?? [],
     transactions: data.transactions ?? [],
   };
@@ -60,48 +76,82 @@ export default function AdminConsole() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // `search` suit la frappe ; `query` ne bouge qu'après une pause, pour ne pas
+  // interroger le serveur à chaque caractère.
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  // Incrémenté pour forcer un rechargement à paramètres constants, après un
+  // ajustement de crédits : une seule voie d'accès aux données, pas deux.
+  const [reloadToken, setReloadToken] = useState(0);
+
+  // `busy` est toujours armé depuis un gestionnaire d'événement, jamais depuis
+  // un effet : c'est ce qui évite les rendus en cascade que signale
+  // react-hooks/set-state-in-effect.
+  const [busy, setBusy] = useState(false);
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
   const apply = (data: AdminData) => {
     setProfiles(data.profiles);
+    setTotal(data.total);
+    setPageSize(data.pageSize);
+    // L'API a pu ramener une page hors bornes dans le domaine valide.
+    setPage(data.page);
     setSongs(data.songs);
     setTransactions(data.transactions);
     setError(null);
   };
 
-  // Chargement initial. `loading` vaut déjà true au montage, il n'y a donc rien
-  // à écrire avant le `await` : l'état n'est touché qu'une fois la réponse là.
+  // Anti-rebond de la recherche. Le `setTimeout` place les écritures d'état hors
+  // du corps de l'effet, donc hors du chemin synchrone.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Chargement des données, rejoué à chaque changement de recherche ou de page.
+  // `loading` vaut déjà true au montage : rien à écrire avant le `await`, l'état
+  // n'est touché qu'une fois la réponse là.
   useEffect(() => {
     let active = true;
 
     (async () => {
       try {
-        const data = await loadAdminData();
+        const data = await loadAdminData(query, page);
         if (active) apply(data);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Erreur");
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setBusy(false);
+        }
       }
     })();
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [query, page, reloadToken]);
 
-  // Rechargement manuel, déclenché depuis un gestionnaire d'événement : ici le
-  // spinner peut être armé immédiatement.
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      apply(await loadAdminData());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur");
-    } finally {
-      setLoading(false);
-    }
+  const goToPage = (next: number) => {
+    setBusy(true);
+    setPage(next);
+  };
+
+  const handleSearch = (value: string) => {
+    setBusy(true);
+    setSearch(value);
   };
 
   const handleAddCredits = async (userId: string) => {
@@ -123,7 +173,8 @@ export default function AdminConsole() {
       return;
     }
 
-    refresh();
+    setBusy(true);
+    setReloadToken((token) => token + 1);
   };
 
   return (
@@ -141,8 +192,29 @@ export default function AdminConsole() {
       ) : (
         <div className="space-y-10">
           <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
-            <h2 className="text-xl font-bold mb-4 text-indigo-400">{t("usersSection")}</h2>
-            <div className="overflow-x-auto">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold text-indigo-400">{t("usersSection")}</h2>
+              <p className="text-xs text-zinc-500">{t("totalUsers", { count: total })}</p>
+            </div>
+
+            <div className="mb-5">
+              <label htmlFor="admin-search" className="sr-only">
+                {t("searchLabel")}
+              </label>
+              <input
+                id="admin-search"
+                type="search"
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="w-full sm:max-w-sm bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition"
+              />
+            </div>
+
+            {profiles.length === 0 ? (
+              <p className="text-zinc-500 text-sm">{t("noResults")}</p>
+            ) : (
+            <div className={`overflow-x-auto transition-opacity ${busy ? "opacity-50" : ""}`}>
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-zinc-800 text-zinc-400">
                   <tr>
@@ -169,6 +241,31 @@ export default function AdminConsole() {
                 </tbody>
               </table>
             </div>
+            )}
+
+            {pageCount > 1 && (
+              <div className="flex items-center justify-between gap-4 mt-5 pt-4 border-t border-zinc-800">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page <= 1 || busy}
+                  className="text-xs font-bold px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-zinc-800 transition"
+                >
+                  ← {t("pagePrevious")}
+                </button>
+
+                <span className="text-xs text-zinc-400 font-semibold whitespace-nowrap">
+                  {t("pageStatus", { page, pages: pageCount })}
+                </span>
+
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= pageCount || busy}
+                  className="text-xs font-bold px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-zinc-800 transition"
+                >
+                  {t("pageNext")} →
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">

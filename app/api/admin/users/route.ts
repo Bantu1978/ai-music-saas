@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 
 /** Nombre de mouvements de crédits remontés au journal. */
 const TRANSACTIONS_LIMIT = 25;
+
+/** Utilisateurs affichés par page. */
+const PAGE_SIZE = 20;
 
 /**
  * Ligne de `credit_transactions` accompagnée du profil joint.
@@ -28,7 +31,30 @@ function firstProfile(profiles: TransactionRow["profiles"]): ProfileRef | null {
   return Array.isArray(profiles) ? profiles[0] ?? null : profiles;
 }
 
-export async function GET() {
+/**
+ * Prépare un terme de recherche pour un filtre `ilike` de PostgREST.
+ *
+ * Deux grammaires se superposent et doivent être neutralisées :
+ *   - celle du filtre `or(...)`, où la virgule sépare les termes et les
+ *     parenthèses délimitent le groupe : une recherche contenant « a,b »
+ *     produirait sinon une requête au sens tout autre, voire invalide ;
+ *   - celle des motifs LIKE, où `%`, `_` et `*` sont des jokers.
+ *
+ * Ces caractères sont retirés plutôt qu'échappés : dans un champ de recherche,
+ * les perdre est sans conséquence, alors qu'un échappement mal ficelé laisse
+ * une faille. Renvoie `null` s'il ne reste rien de cherchable.
+ */
+function searchPattern(term: string): string | null {
+  const cleaned = term.replace(/[%_*,()"\\]/g, " ").trim();
+  return cleaned ? `%${cleaned}%` : null;
+}
+
+/** Filtre commun au comptage et à la page de données : une seule formulation. */
+function orFilter(pattern: string): string {
+  return `email.ilike.${pattern},full_name.ilike.${pattern}`;
+}
+
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,17 +64,27 @@ export async function GET() {
     return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const pattern = searchPattern(searchParams.get("q") || "");
+  const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+  const requestedPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
   const admin = getSupabaseAdmin();
 
+  // Le total est demandé séparément, et d'abord, pour pouvoir ramener une page
+  // hors bornes dans le domaine valide. PostgREST répond 416 (PGRST103) sur un
+  // `range` au-delà de la fin : sans ce garde-fou, une page devenue vide — parce
+  // qu'un compte a été supprimé, ou parce qu'une recherche a réduit le nombre de
+  // résultats — remonterait au client comme une erreur serveur.
+  let countQuery = admin.from("profiles").select("id", { count: "exact", head: true });
+  if (pattern) countQuery = countQuery.or(orFilter(pattern));
+
   const [
-    { data: profiles, error: profilesError },
+    { count, error: countError },
     { data: songs, error: songsError },
     { data: rawTransactions, error: transactionsError },
   ] = await Promise.all([
-    admin
-      .from("profiles")
-      .select("id, email, full_name, credits, created_at")
-      .order("created_at", { ascending: false }),
+    countQuery,
     admin
       .from("songs")
       .select("id, title, genre, status, audio_url, created_at")
@@ -61,14 +97,29 @@ export async function GET() {
       .limit(TRANSACTIONS_LIMIT),
   ]);
 
-  if (profilesError || songsError || transactionsError) {
+  if (countError || songsError || transactionsError) {
     return NextResponse.json(
-      {
-        error:
-          profilesError?.message || songsError?.message || transactionsError?.message,
-      },
+      { error: countError?.message || songsError?.message || transactionsError?.message },
       { status: 500 }
     );
+  }
+
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(requestedPage, pageCount);
+  const from = (page - 1) * PAGE_SIZE;
+
+  let profilesQuery = admin
+    .from("profiles")
+    .select("id, email, full_name, credits, created_at")
+    .order("created_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+  if (pattern) profilesQuery = profilesQuery.or(orFilter(pattern));
+
+  const { data: profiles, error: profilesError } = await profilesQuery;
+
+  if (profilesError) {
+    return NextResponse.json({ error: profilesError.message }, { status: 500 });
   }
 
   // Aplatissement du profil joint : le client reçoit un libellé prêt à afficher
@@ -84,5 +135,14 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ profiles, songs, transactions });
+  return NextResponse.json({
+    profiles,
+    total,
+    // Page effectivement servie : elle peut différer de celle demandée si
+    // celle-ci dépassait la fin. Le client s'aligne dessus.
+    page,
+    pageSize: PAGE_SIZE,
+    songs,
+    transactions,
+  });
 }
