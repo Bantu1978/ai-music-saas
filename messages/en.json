@@ -141,7 +141,18 @@
     "refundConfirm": "Give up on this generation and return the credit to the client?",
     "stillPending": "Suno has not finished this generation yet. Try again later.",
     "noTaskRef": "No task reference: only a refund is possible.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "configSection": "Configuration",
+    "configHint": "What the server actually sees. No secret value is shown — only whether a setting is present, and under which name. A variable added in Vercel takes effect only after a redeploy.",
+    "configAllGood": "all set",
+    "configProblems": "{count} item(s) to review",
+    "configWhat": "Setting",
+    "configState": "State",
+    "configDetail": "Detail",
+    "configOk": "OK",
+    "configMissing": "MISSING",
+    "configWarning": "WARNING",
+    "configMissingHelp": "Set it in Vercel, then redeploy."
   },
   "ResetPassword": {
     "title": "Choose a new password",
