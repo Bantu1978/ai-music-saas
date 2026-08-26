@@ -28,5 +28,7 @@ export async function GET(req: NextRequest) {
     ? await settlePayment(getSupabaseAdmin(), reference)
     : "unknown";
 
-  return NextResponse.redirect(`${appBaseUrl()}/${locale}/pricing?paiement=${issue}`);
+  return NextResponse.redirect(
+    `${appBaseUrl(req.nextUrl.origin)}/${locale}/pricing?paiement=${issue}`
+  );
 }
