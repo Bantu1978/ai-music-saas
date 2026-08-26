@@ -29,13 +29,14 @@
     "passwordTooShort": "Password must be at least 8 characters.",
     "emailRequired": "Email and password are required.",
     "confirmSent": "Account created. Open the confirmation email we just sent you, then sign in.",
+    "senderNotice": "The email is sent by Supabase, our authentication service: it will appear as \"Supabase Auth\" (noreply@mail.app.supabase.io) rather than BAKUMELO. Remember to check your spam folder.",
     "noAccount": "No account yet?",
     "hasAccount": "Already have an account?",
     "forgotPassword": "Forgot your password?",
     "resetTitle": "Reset your password",
     "resetSubtitle": "Enter your email address and we will send you a link to choose a new password.",
     "resetSubmit": "Send the link",
-    "resetSent": "If an account exists for this address, a reset link has just been sent. Remember to check your spam folder.",
+    "resetSent": "If an account exists for this address, a reset link has just been sent.",
     "backToSignIn": "Back to sign in"
   },
   "HomePage": {

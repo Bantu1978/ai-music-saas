@@ -172,7 +172,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
         {notice && (
           <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-            {notice}
+            <p>{notice}</p>
+            {/* Les deux notices possibles annoncent l'envoi d'un email. Tant que le
+                SMTP personnalisé BAKUMELO n'est pas en place, l'expéditeur reste
+                Supabase : on prévient pour éviter que le message soit ignoré ou
+                pris pour du spam. À retirer une fois le SMTP configuré. */}
+            <p className="mt-2 text-emerald-300/70 leading-relaxed">{t("senderNotice")}</p>
           </div>
         )}
 
