@@ -102,6 +102,41 @@ export const GENRES: Genre[] = [
       "layered rattles and hand percussion, call and response vocals, Cameroonian bikutsi feel",
     experimental: true,
   },
+
+  // --- Afrique de l'Ouest, Congo, Caraïbes : même traitement ---
+  {
+    id: "coupe_decale",
+    label: "Coupé-Décalé",
+    prompt:
+      "high-energy percussive dance groove, deep sub bass, minimalist repetitive arrangement, " +
+      "bright synth stabs, call and response shouts, fast tempo, Ivorian coupe-decale feel",
+    experimental: true,
+  },
+  {
+    id: "zouglou",
+    label: "Zouglou",
+    prompt:
+      "mid-tempo syncopated 4/4 groove, chanted lead vocal answered by a crowd chorus, " +
+      "hand percussion, clean rhythm guitar, catchy communal refrain, Ivorian zouglou feel",
+    experimental: true,
+  },
+  {
+    id: "rumba_congolaise",
+    label: "Rumba congolaise",
+    prompt:
+      "interlocking melodic electric guitars, fingerpicked lead lines, warm bass, brass section, " +
+      "relaxed syncopated 4/4, smooth harmonised vocals, Congolese rumba with a fast sebene section",
+    experimental: true,
+  },
+  {
+    id: "zouk",
+    label: "Zouk",
+    prompt:
+      "drum machine with crisp rimshot snare, interlocking bass and guitar patterns, " +
+      "bright horn stabs, warm synth pads, shaker and conga, mid-tempo, French Antillean zouk feel",
+    experimental: true,
+  },
+
   {
     id: "gospel_amapiano",
     label: "Gospel Amapiano",
