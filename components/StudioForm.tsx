@@ -162,9 +162,12 @@ export default function StudioForm({
               onChange={(e) => setGenre(e.target.value)}
               className="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white outline-none transition cursor-pointer"
             >
+              {/* Les styles non documentés par Suno sont signalés : le résultat
+                  y est moins prévisible, et un client doit le savoir avant de
+                  dépenser son crédit. */}
               {GENRES.map((g) => (
                 <option key={g.id} value={g.id} className="bg-zinc-900 text-white">
-                  {g.label}
+                  {g.experimental ? `${g.label} — ${t("experimental")}` : g.label}
                 </option>
               ))}
             </select>

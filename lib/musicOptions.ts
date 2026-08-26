@@ -34,6 +34,15 @@ export type Genre = {
   label: string;
   /** Tags anglais envoyés à Suno, instruments compris. */
   prompt: string;
+  /**
+   * Style que Suno ne documente pas.
+   *
+   * Il est décrit par ses instruments plutôt que par son nom, ce qui donne au
+   * modèle de quoi travailler même s'il ignore l'étiquette. Le résultat reste
+   * moins prévisible que sur un genre documenté : le studio le signale, pour
+   * qu'un client sache avant de dépenser son crédit.
+   */
+  experimental?: boolean;
 };
 
 export const GENRES: Genre[] = [
@@ -67,6 +76,31 @@ export const GENRES: Genre[] = [
     id: "amapiano",
     label: "Amapiano",
     prompt: "amapiano, log drum bass, piano stabs, deep house rhythm, hypnotic South African groove",
+  },
+
+  // --- Cameroun : décrits par leurs instruments, faute d'être documentés ---
+  //
+  // Suno ne connaît pas ces étiquettes. La consigne mène donc par la matière
+  // sonore — ce que le modèle sait rendre — et ne cite le nom qu'en appui.
+  // Les caractéristiques retenues sont celles que décrivent les sources sur ces
+  // genres : pour le makossa, une basse électrique syncopée et des cuivres sur
+  // un 4/4 rapide ; pour le bikutsi, un 6/8 ternaire et le timbre sec du
+  // balafon, qu'on imite à la guitare étouffée depuis son électrification.
+  {
+    id: "makossa",
+    label: "Makossa",
+    prompt:
+      "syncopated electric bass ostinato, tight horn section riffs, clean rhythm guitar, " +
+      "crisp drum kit groove, 4/4 uptempo, Cameroonian makossa dance feel",
+    experimental: true,
+  },
+  {
+    id: "bikutsi",
+    label: "Bikutsi",
+    prompt:
+      "fast 6/8 triplet groove, balafon wooden xylophone melody, muted percussive electric guitar, " +
+      "layered rattles and hand percussion, call and response vocals, Cameroonian bikutsi feel",
+    experimental: true,
   },
   {
     id: "gospel_amapiano",
