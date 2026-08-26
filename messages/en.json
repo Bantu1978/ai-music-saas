@@ -67,7 +67,13 @@
     "noCreditsBody": "You need at least 1 credit to compose a track. Top up your account to continue.",
     "buyCredits": "Top up my credits",
     "creditsLeft": "{count} credit(s) available",
-    "creditsUnlimited": "Unlimited credits (admin)"
+    "creditsUnlimited": "Unlimited credits (admin)",
+    "voiceLabel": "Voice style",
+    "voice_any": "No preference",
+    "voice_female": "Female voice",
+    "voice_male": "Male voice",
+    "languageLabel": "Lyrics language",
+    "languageAuto": "Language of my text"
   },
   "Dashboard": {
     "title": "Dashboard",
