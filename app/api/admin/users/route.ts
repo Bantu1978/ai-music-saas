@@ -2,12 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
+import { SONG_STATUS } from "@/lib/songStatus";
 
 /** Nombre de mouvements de crédits remontés au journal. */
 const TRANSACTIONS_LIMIT = 25;
 
 /** Utilisateurs affichés par page. */
 const PAGE_SIZE = 20;
+
+/** Générations en attente remontées au triage. */
+const STUCK_LIMIT = 30;
 
 /**
  * Ligne de `credit_transactions` accompagnée du profil joint.
@@ -25,6 +29,16 @@ type TransactionRow = {
 };
 
 type ProfileRef = { email: string | null; full_name: string | null };
+
+/** Génération restée en attente, avec son propriétaire. */
+type StuckRow = {
+  id: string;
+  title: string | null;
+  genre: string | null;
+  task_id: string | null;
+  created_at: string;
+  profiles: ProfileRef | ProfileRef[] | null;
+};
 
 function firstProfile(profiles: TransactionRow["profiles"]): ProfileRef | null {
   if (!profiles) return null;
@@ -83,6 +97,7 @@ export async function GET(req: NextRequest) {
     { count, error: countError },
     { data: songs, error: songsError },
     { data: rawTransactions, error: transactionsError },
+    { data: rawStuck, error: stuckError },
   ] = await Promise.all([
     countQuery,
     admin
@@ -95,11 +110,25 @@ export async function GET(req: NextRequest) {
       .select("id, amount, description, created_at, profiles(email, full_name)")
       .order("created_at", { ascending: false })
       .limit(TRANSACTIONS_LIMIT),
+    // Générations jamais réconciliées : l'onglet du client s'est fermé avant la
+    // fin, le crédit est débité et le morceau n'a jamais été rattaché.
+    admin
+      .from("songs")
+      .select("id, title, genre, task_id, created_at, profiles(email, full_name)")
+      .eq("status", SONG_STATUS.pending)
+      .order("created_at", { ascending: false })
+      .limit(STUCK_LIMIT),
   ]);
 
-  if (countError || songsError || transactionsError) {
+  if (countError || songsError || transactionsError || stuckError) {
     return NextResponse.json(
-      { error: countError?.message || songsError?.message || transactionsError?.message },
+      {
+        error:
+          countError?.message ||
+          songsError?.message ||
+          transactionsError?.message ||
+          stuckError?.message,
+      },
       { status: 500 }
     );
   }
@@ -135,6 +164,20 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const stuckSongs = ((rawStuck ?? []) as StuckRow[]).map((row) => {
+    const profile = firstProfile(row.profiles);
+    return {
+      id: row.id,
+      title: row.title,
+      genre: row.genre,
+      createdAt: row.created_at,
+      // La référence de tâche n'est pas exposée telle quelle : seule compte,
+      // côté console, l'existence d'un recours auprès de Suno.
+      recoverable: Boolean(row.task_id),
+      user: profile?.email || profile?.full_name || null,
+    };
+  });
+
   return NextResponse.json({
     profiles,
     total,
@@ -144,5 +187,6 @@ export async function GET(req: NextRequest) {
     pageSize: PAGE_SIZE,
     songs,
     transactions,
+    stuckSongs,
   });
 }

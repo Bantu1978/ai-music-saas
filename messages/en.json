@@ -115,7 +115,16 @@
     "totalUsers": "{count} user(s)",
     "pagePrevious": "Previous",
     "pageNext": "Next",
-    "pageStatus": "Page {page} of {pages}"
+    "pageStatus": "Page {page} of {pages}",
+    "stuckSection": "Stuck generations",
+    "stuckCount": "{count} pending",
+    "stuckHint": "These generations were never reconciled: the client closed the tab before completion. The credit was charged, but the track is often finished at Suno. \"Recover\" attaches it to the client account; \"Refund\" gives up and returns the credit.",
+    "reconcile": "Recover",
+    "refund": "Refund",
+    "refundConfirm": "Give up on this generation and return the credit to the client?",
+    "stillPending": "Suno has not finished this generation yet. Try again later.",
+    "noTaskRef": "No task reference: only a refund is possible.",
+    "untitled": "Untitled"
   },
   "ResetPassword": {
     "title": "Choose a new password",
