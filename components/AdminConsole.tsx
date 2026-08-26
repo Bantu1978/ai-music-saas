@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type Profile = {
   id: string;
@@ -18,7 +18,16 @@ type Song = {
   audio_url: string | null;
 };
 
-type AdminData = { profiles: Profile[]; songs: Song[] };
+/** Mouvement de crédits, déjà aplati par /api/admin/users. */
+type Transaction = {
+  id: string;
+  amount: number;
+  description: string | null;
+  createdAt: string;
+  user: string | null;
+};
+
+type AdminData = { profiles: Profile[]; songs: Song[]; transactions: Transaction[] };
 
 /**
  * Chargement pur, sans état React : le composant décide seul quoi en faire.
@@ -29,20 +38,35 @@ async function loadAdminData(): Promise<AdminData> {
   const res = await fetch("/api/admin/users");
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
-  return { profiles: data.profiles ?? [], songs: data.songs ?? [] };
+  return {
+    profiles: data.profiles ?? [],
+    songs: data.songs ?? [],
+    transactions: data.transactions ?? [],
+  };
 }
 
 export default function AdminConsole() {
   const t = useTranslations("Admin");
+  const locale = useLocale();
+
+  // Intl plutôt que le formateur de next-intl : ce panneau est rendu après le
+  // montage, jamais côté serveur, donc aucun risque d'écart d'hydratation — et
+  // cela évite d'imposer un fuseau au reste de la configuration.
+  const formatDate = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
+      new Date(iso)
+    );
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const apply = (data: AdminData) => {
     setProfiles(data.profiles);
     setSongs(data.songs);
+    setTransactions(data.transactions);
     setError(null);
   };
 
@@ -145,6 +169,48 @@ export default function AdminConsole() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+              <h2 className="text-xl font-bold text-emerald-400">{t("transactionsSection")}</h2>
+              <p className="text-xs text-zinc-500">{t("transactionsHint")}</p>
+            </div>
+
+            {transactions.length === 0 ? (
+              <p className="text-zinc-500 text-sm">{t("transactionsEmpty")}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-zinc-800 text-zinc-400">
+                    <tr>
+                      <th className="py-3 px-2 whitespace-nowrap">{t("colDate")}</th>
+                      <th className="py-3 px-2">{t("colUser")}</th>
+                      <th className="py-3 px-2 text-right whitespace-nowrap">{t("colAmount")}</th>
+                      <th className="py-3 px-2">{t("colReason")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {transactions.map((tx) => (
+                      <tr key={tx.id}>
+                        <td className="py-3 px-2 text-zinc-400 whitespace-nowrap">
+                          {formatDate(tx.createdAt)}
+                        </td>
+                        <td className="py-3 px-2">{tx.user || t("unknownUser")}</td>
+                        <td
+                          className={`py-3 px-2 text-right font-bold whitespace-nowrap ${
+                            tx.amount < 0 ? "text-amber-400" : "text-emerald-400"
+                          }`}
+                        >
+                          {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
+                        </td>
+                        <td className="py-3 px-2 text-zinc-400">{tx.description || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">

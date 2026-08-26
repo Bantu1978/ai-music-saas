@@ -67,7 +67,6 @@
     "noCreditsBody": "Il vous faut au moins 1 crédit pour composer un morceau. Rechargez votre compte pour continuer.",
     "buyCredits": "Recharger mes crédits",
     "creditsLeft": "{count} crédit(s) disponible(s)",
-
     "creditsUnlimited": "Crédits illimités (admin)"
   },
   "Dashboard": {
@@ -102,7 +101,14 @@
     "addCredits": "+ Ajouter crédits",
     "addCreditsPrompt": "Combien de crédits souhaitez-vous ajouter ?",
     "songsSection": "Dernières générations",
-    "forbidden": "Accès réservé aux administrateurs."
+    "forbidden": "Accès réservé aux administrateurs.",
+    "transactionsSection": "Mouvements de crédits",
+    "transactionsHint": "25 derniers mouvements",
+    "transactionsEmpty": "Aucun mouvement de crédit enregistré.",
+    "colDate": "Date",
+    "colAmount": "Montant",
+    "colReason": "Motif",
+    "unknownUser": "Compte supprimé"
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",
