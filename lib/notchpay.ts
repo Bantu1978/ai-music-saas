@@ -130,11 +130,14 @@ export async function retrievePayment(reference: string): Promise<NotchPayment |
 /**
  * Un secret de webhook est-il configuré ?
  *
- * Notch Pay n'en délivre pas : ni la création de webhook (POST /webhooks) ni le
- * schéma `Webhook` de leur spécification ne renvoient de secret, et leur
- * documentation n'en montre qu'un espace réservé. La signature est donc
- * facultative ici — voir le commentaire de la route du webhook, qui explique
- * pourquoi cela ne fragilise pas l'attribution des crédits.
+ * Notch Pay signe bel et bien ses livraisons — un en-tête `x-notch-signature`
+ * figure dans leurs journaux —, mais ne dit nulle part avec quel secret : ni
+ * `POST /webhooks` ni le schéma `Webhook` de leur spécification n'en renvoient,
+ * et leur documentation n'en montre qu'un espace réservé. La clé privée est
+ * l'hypothèse la plus probable, non vérifiée à ce jour.
+ *
+ * La vérification reste donc facultative, et son verdict est rapporté plutôt
+ * qu'imposé tant que le secret n'est pas confirmé : voir signatureVerdict().
  */
 export function hasWebhookSecret(): boolean {
   return Boolean((process.env.NOTCHPAY_WEBHOOK_SECRET || "").trim());
@@ -169,3 +172,36 @@ export const PAID_STATUSES = ["complete", "completed", "success", "successful"];
 
 /** Statuts définitivement perdus : le paiement n'aura pas lieu. */
 export const DEAD_STATUSES = ["failed", "canceled", "cancelled", "expired", "rejected"];
+
+/** Verdict de signature, destiné au diagnostic autant qu'au contrôle. */
+export type VerdictSignature =
+  | "non-configure"  // aucun secret : rien n'est vérifié
+  | "absente"        // secret configuré, mais Notch Pay n'a rien envoyé
+  | "valide"
+  | "invalide";
+
+/**
+ * Établit le verdict sans décider du sort de la requête.
+ *
+ * Séparer le constat de la sanction permet d'essayer un secret candidat sans
+ * risquer de bloquer les paiements : la route peut rapporter « invalide » tout
+ * en laissant passer, tant que le mode strict n'est pas activé.
+ */
+export function signatureVerdict(rawBody: string, signature: string | null): VerdictSignature {
+  if (!hasWebhookSecret()) return "non-configure";
+  if (!signature) return "absente";
+  return verifyWebhookSignature(rawBody, signature) ? "valide" : "invalide";
+}
+
+/**
+ * Le mode strict rejette-t-il les signatures invalides ?
+ *
+ * Désactivé par défaut, à dessein : on ne connaît pas encore avec certitude le
+ * secret utilisé par Notch Pay. Tant qu'il n'est pas confirmé, rejeter
+ * couperait les paiements sur une simple hypothèse. Le verdict est rapporté
+ * dans la réponse au webhook, ce qui permet de trancher avant de durcir.
+ */
+export function webhookStrict(): boolean {
+  const v = (process.env.NOTCHPAY_WEBHOOK_STRICT || "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "on";
+}
