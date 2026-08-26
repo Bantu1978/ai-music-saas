@@ -1,3 +1,5 @@
+import { URL_NAMES, KEY_NAMES } from "./supabaseEnv";
+
 /**
  * État de la configuration, vu depuis le serveur qui tourne réellement.
  *
@@ -48,7 +50,10 @@ function entree(
   noms: string[],
   requis: boolean,
   observer?: (valeur: string) => { statut?: ConfigStatut; note?: string } | null,
-  noteAbsence?: string
+  // Ce qu'il faut dire, et signaler, quand rien n'est renseigné. Toutes les
+  // absences ne se valent pas : certaines arrêtent le service, d'autres font
+  // seulement basculer sur un comportement de repli qu'il vaut mieux savoir.
+  absence?: { statut?: ConfigStatut; note?: string }
 ): ConfigEntree {
   const trouve = premier(noms);
 
@@ -57,10 +62,10 @@ function entree(
       id,
       intitule,
       requis,
-      statut: requis ? "manquant" : "ok",
+      statut: absence?.statut ?? (requis ? "manquant" : "ok"),
       source: null,
       noms,
-      note: requis ? null : noteAbsence ?? "facultatif",
+      note: absence?.note ?? (requis ? null : "facultatif"),
     };
   }
 
@@ -78,12 +83,36 @@ function entree(
 
 export function configHealth(): ConfigEntree[] {
   return [
-    entree("supabase_url", "Base de données (navigateur)", ["NEXT_PUBLIC_SUPABASE_URL"], true),
+    // Côté serveur, tous les noms conviennent.
+    entree("supabase_url", "Base de données (serveur)", [...URL_NAMES], true),
+    entree("supabase_public", "Clé publique Supabase (serveur)", [...KEY_NAMES], true),
+
+    // Côté navigateur, seuls les noms préfixés existent : Next.js n'injecte
+    // qu'eux dans le bundle, au moment de la construction. Une variable
+    // déclarée sans ce préfixe n'y parviendra jamais, quel que soit son
+    // contenu — le site bascule alors sur le repli codé en dur. Il fonctionne,
+    // mais la configuration est figée dans le code et une rotation de clé
+    // demanderait un déploiement.
     entree(
-      "supabase_public",
-      "Clé publique Supabase",
-      ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-      true
+      "supabase_browser",
+      "Identifiants livrés au navigateur",
+      ["NEXT_PUBLIC_SUPABASE_URL"],
+      false,
+      () => {
+        const cle =
+          (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "").trim() ||
+          (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+        return cle
+          ? { note: "adresse et clé transmises par variable" }
+          : {
+              statut: "attention",
+              note: "clé absente — repli codé en dur ; NEXT_PUBLIC_ est obligatoire ici",
+            };
+      },
+      {
+        statut: "attention",
+        note: "repli codé en dur — NEXT_PUBLIC_ est obligatoire pour le navigateur",
+      }
     ),
     entree("supabase_service", "Clé de service Supabase", ["SUPABASE_SERVICE_ROLE_KEY"], true),
 
@@ -120,7 +149,7 @@ export function configHealth(): ConfigEntree[] {
       ["NOTCHPAY_WEBHOOK_SECRET"],
       false,
       () => ({ note: "vérification stricte activée" }),
-      "Notch Pay n'en délivre pas — sans effet sur la sécurité"
+      { note: "Notch Pay n'en délivre pas — sans effet sur la sécurité" }
     ),
 
     entree("maintenance", "Mode « site en construction »", ["MAINTENANCE_MODE"], false, (v) => {

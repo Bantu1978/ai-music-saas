@@ -27,6 +27,9 @@ export default function SiteHeader() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [admin, setAdmin] = useState(false);
 
+  // Menu déroulant des petits écrans.
+  const [menuOuvert, setMenuOuvert] = useState(false);
+
   // Incrémenté au retour sur l'onglet, pour redemander le solde.
   const [refreshToken, setRefreshToken] = useState(0);
 
@@ -124,34 +127,68 @@ export default function SiteHeader() {
     router.push("/");
   };
 
+  // Liste unique, servie deux fois : la barre horizontale sur grand écran, le
+  // panneau déroulant sur téléphone. Les dupliquer exposerait à ce qu'un lien
+  // ajouté un jour n'existe que d'un côté.
+  // Le lien Admin reste un confort d'affichage : la page /admin et les routes
+  // /api/admin/* revérifient toutes le statut côté serveur.
+  const liens = [
+    { href: "/generate", libelle: t("studio"), accent: false },
+    { href: "/dashboard", libelle: t("dashboard"), accent: false },
+    { href: "/pricing", libelle: t("pricing"), accent: false },
+    ...(admin ? [{ href: "/admin", libelle: t("admin"), accent: true }] : []),
+  ];
+
   return (
     <>
       <header className="w-full sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+          {/* Bouton de menu, réservé aux écrans où la barre horizontale ne tient
+              pas. Sans lui, un visiteur sur téléphone n'avait aucun accès au
+              studio, à ses créations ni aux tarifs. */}
+          <button
+            type="button"
+            onClick={() => setMenuOuvert((ouvert) => !ouvert)}
+            aria-expanded={menuOuvert}
+            aria-controls="menu-mobile"
+            aria-label={menuOuvert ? t("menuClose") : t("menuOpen")}
+            className="sm:hidden -ml-1 p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-900 transition"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              {menuOuvert ? (
+                <path
+                  d="M5 5l10 10M15 5L5 15"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              ) : (
+                <path
+                  d="M3 6h14M3 10h14M3 14h14"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
+          </button>
+
           <Link href="/" className="font-black text-lg text-indigo-400 tracking-tight">
             {t("brand")}
           </Link>
 
           <nav className="hidden sm:flex items-center gap-1 text-xs font-bold text-zinc-400 ml-4">
-            <Link href="/generate" className="px-3 py-1.5 rounded-lg hover:text-white hover:bg-zinc-900 transition">
-              {t("studio")}
-            </Link>
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg hover:text-white hover:bg-zinc-900 transition">
-              {t("dashboard")}
-            </Link>
-            <Link href="/pricing" className="px-3 py-1.5 rounded-lg hover:text-white hover:bg-zinc-900 transition">
-              {t("pricing")}
-            </Link>
-            {/* Confort d'affichage uniquement : la page /admin et les routes
-                /api/admin/* revérifient toutes le statut côté serveur. */}
-            {admin && (
+            {liens.map((lien) => (
               <Link
-                href="/admin"
-                className="px-3 py-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-zinc-900 transition"
+                key={lien.href}
+                href={lien.href}
+                className={`px-3 py-1.5 rounded-lg hover:bg-zinc-900 transition ${
+                  lien.accent ? "text-amber-400 hover:text-amber-300" : "hover:text-white"
+                }`}
               >
-                {t("admin")}
+                {lien.libelle}
               </Link>
-            )}
+            ))}
           </nav>
 
           <div className="flex items-center gap-3 ml-auto">
@@ -182,6 +219,29 @@ export default function SiteHeader() {
             )}
           </div>
         </div>
+
+        {/* Panneau déroulant. Il se ferme au clic sur un lien plutôt que sur un
+            effet de changement de route : une écriture d'état depuis un
+            gestionnaire d'événement évite les rendus en cascade. */}
+        {menuOuvert && (
+          <nav
+            id="menu-mobile"
+            className="sm:hidden border-t border-zinc-800/50 bg-zinc-950/95 px-4 py-2 flex flex-col"
+          >
+            {liens.map((lien) => (
+              <Link
+                key={lien.href}
+                href={lien.href}
+                onClick={() => setMenuOuvert(false)}
+                className={`py-3 text-sm font-bold border-b border-zinc-800/50 last:border-b-0 transition ${
+                  lien.accent ? "text-amber-400" : "text-zinc-300 hover:text-white"
+                }`}
+              >
+                {lien.libelle}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
