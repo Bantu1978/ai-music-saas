@@ -1,10 +1,13 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { supabaseUrl, supabasePublishableKey } from '@/lib/supabaseEnv'
 
 export async function createClient() {
   const cookieStore = await cookies()
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "https://jehujyvzkjrflmatpsmo.supabase.co";
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_pxDEPJpGVZpidu-f1lFSww_qVP74a4A";
+  // Côté serveur, les noms sans préfixe NEXT_PUBLIC_ conviennent aussi :
+  // process.env y est complet à l exécution.
+  const url = supabaseUrl();
+  const key = supabasePublishableKey();
 
   return createServerClient(
     url,

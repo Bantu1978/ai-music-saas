@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { routing } from "./src/i18n/routing";
 import { isAdmin } from "./lib/admin";
 import { isMaintenanceMode, maintenancePage } from "./lib/maintenance";
+import { supabaseUrl, supabasePublishableKey } from "./lib/supabaseEnv";
 
 // Source unique de vérité pour les locales : src/i18n/routing.ts
 const intlMiddleware = createMiddleware(routing);
@@ -19,10 +20,11 @@ const intlMiddleware = createMiddleware(routing);
 async function maintenanceGate(req: NextRequest): Promise<NextResponse | null> {
   if (!isMaintenanceMode()) return null;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Résolution partagée : les noms sans préfixe NEXT_PUBLIC_ conviennent ici,
+  // le middleware s'exécutant côté serveur. Sans cela, une installation qui les
+  // déclare ainsi perdait le contournement administrateur du rideau.
+  const url = supabaseUrl();
+  const key = supabasePublishableKey();
 
   if (url && key) {
     // Lecture seule de la session : les cookies rafraîchis ne sont pas réécrits
