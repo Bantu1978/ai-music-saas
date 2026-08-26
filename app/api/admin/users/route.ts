@@ -34,7 +34,16 @@ type TransactionRow = {
 
 type ProfileRef = { email: string | null; full_name: string | null };
 
-/** Paiement ouvert et jamais dénoué, avec son acheteur. */
+/**
+ * Paiement ouvert et jamais dénoué.
+ *
+ * Pas de profil joint ici, contrairement aux chansons et aux mouvements de
+ * crédits : `payments.user_id` référence `auth.users`, non `public.profiles`.
+ * PostgREST ne connaît donc aucune relation à suivre, et la demander faisait
+ * échouer la route entière — donc toute la console d'administration.
+ * L'identité est résolue par une seconde requête, ciblée sur les seuls comptes
+ * concernés.
+ */
 type PendingPaymentRow = {
   reference: string;
   pack: string;
@@ -43,7 +52,7 @@ type PendingPaymentRow = {
   currency: string;
   provider_reference: string | null;
   created_at: string;
-  profiles: ProfileRef | ProfileRef[] | null;
+  user_id: string;
 };
 
 /** Génération restée en attente, avec son propriétaire. */
@@ -140,7 +149,7 @@ export async function GET(req: NextRequest) {
     // que cela doit se voir.
     admin
       .from("payments")
-      .select("reference, pack, credits, amount, currency, provider_reference, created_at, profiles(email, full_name)")
+      .select("reference, pack, credits, amount, currency, provider_reference, created_at, user_id")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(PENDING_PAYMENTS_LIMIT),
@@ -205,8 +214,24 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  const pendingPayments = ((rawPending ?? []) as PendingPaymentRow[]).map((row) => {
-    const profile = firstProfile(row.profiles);
+  // Identité des acheteurs, en une requête ciblée plutôt qu'une jointure que la
+  // base ne permet pas. Aucune requête si aucun paiement n'est en attente.
+  const pendingRows = (rawPending ?? []) as PendingPaymentRow[];
+  const acheteurs = new Map<string, ProfileRef>();
+
+  if (pendingRows.length > 0) {
+    const { data: comptes } = await admin
+      .from("profiles")
+      .select("id, email, full_name")
+      .in("id", [...new Set(pendingRows.map((r) => r.user_id))]);
+
+    for (const c of (comptes ?? []) as (ProfileRef & { id: string })[]) {
+      acheteurs.set(c.id, c);
+    }
+  }
+
+  const pendingPayments = pendingRows.map((row) => {
+    const profile = acheteurs.get(row.user_id) ?? null;
     return {
       reference: row.reference,
       pack: row.pack,
