@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createClient } from "@/lib/supabase/server";
 import { SONG_STATUS } from "@/lib/songStatus";
-import { extractClips, type SunoRecordInfoResponse } from "@/lib/suno";
+import { fetchSunoTask } from "@/lib/suno";
 
 /**
  * Suivi d'une génération Suno.
@@ -14,6 +14,10 @@ import { extractClips, type SunoRecordInfoResponse } from "@/lib/suno";
  * `songId` est optionnel : quand il est fourni, le résultat est aussi persisté
  * sur la ligne `songs` correspondante, à condition qu'elle appartienne bien à
  * l'utilisateur connecté.
+ *
+ * La lecture de l'état chez Suno vit dans lib/suno.ts, partagée avec le
+ * rattrapage administrateur : les deux doivent conclure identiquement sur une
+ * même tâche.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -38,85 +42,50 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Clé API manquante" }, { status: 500 });
   }
 
-  try {
-    const res = await fetch(
-      `https://api.sunoapi.org/api/v1/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey.trim()}` },
-        signal: AbortSignal.timeout(20_000),
-      }
-    );
+  const result = await fetchSunoTask(taskId, apiKey);
 
-    const raw = await res.text();
-    let payload: SunoRecordInfoResponse | null = null;
-    try {
-      payload = JSON.parse(raw) as SunoRecordInfoResponse;
-    } catch {
-      // Réponse non-JSON : traitée comme un état transitoire.
-      return NextResponse.json({ status: "PENDING" });
-    }
+  if (result.status === "SUCCESS") {
+    if (songId) {
+      const { error } = await getSupabaseAdmin()
+        .from("songs")
+        .update({
+          audio_url: result.audioUrl,
+          status: SONG_STATUS.completed,
+          ...(result.lyrics ? { lyrics: result.lyrics } : {}),
+          ...(result.title ? { title: result.title } : {}),
+        })
+        .eq("id", songId)
+        .eq("user_id", user.id);
 
-    const taskData = payload?.data ?? {};
-    const status = taskData.status;
-
-    if (status === "SUCCESS" && taskData.response) {
-      const clip = extractClips(taskData.response)[0];
-
-      const audioUrl =
-        clip?.audioUrl || clip?.audio_url || clip?.stream_url || clip?.cdn_url;
-
-      if (audioUrl) {
-        const lyrics = clip?.metadata?.prompt || clip?.lyric || clip?.prompt || null;
-        const title = clip?.title || null;
-
-        if (songId) {
-          const { error } = await getSupabaseAdmin()
-            .from("songs")
-            .update({
-              audio_url: audioUrl,
-              status: SONG_STATUS.completed,
-              ...(lyrics ? { lyrics } : {}),
-              ...(title ? { title } : {}),
-            })
-            .eq("id", songId)
-            .eq("user_id", user.id);
-
-          if (error) {
-            // Non bloquant pour l'écoute immédiate, mais le téléchargement
-            // repose sur `audio_url` : un échec ici doit être visible.
-            console.error(
-              `[status] persistance échouée (${error.code}) : ${error.message}`
-            );
-          }
-        }
-
-        return NextResponse.json({
-          status: "SUCCESS",
-          song: { id: taskId, audioUrl, lyrics, title },
-        });
+      if (error) {
+        // Non bloquant pour l'écoute immédiate, mais le téléchargement repose
+        // sur `audio_url` : un échec ici doit être visible.
+        console.error(`[status] persistance échouée (${error.code}) : ${error.message}`);
       }
     }
 
-    if (status === "FAILED" || status === "CREATE_TASK_FAILED") {
-      if (songId) {
-        await getSupabaseAdmin()
-          .from("songs")
-          .update({ status: SONG_STATUS.failed })
-          .eq("id", songId)
-          .eq("user_id", user.id);
-      }
-
-      return NextResponse.json({
-        status: "FAILED",
-        error: taskData.errorMessage || "La génération a échoué chez Suno.",
-      });
-    }
-
-    return NextResponse.json({ status: status || "PENDING" });
-  } catch (error: unknown) {
-    // Incident réseau transitoire : on reste en PENDING, le client réessaiera
-    // jusqu'à sa limite de tentatives plutôt que d'échouer au premier hoquet.
-    console.warn("[status]", error instanceof Error ? error.message : error);
-    return NextResponse.json({ status: "PENDING" });
+    return NextResponse.json({
+      status: "SUCCESS",
+      song: {
+        id: taskId,
+        audioUrl: result.audioUrl,
+        lyrics: result.lyrics,
+        title: result.title,
+      },
+    });
   }
+
+  if (result.status === "FAILED") {
+    if (songId) {
+      await getSupabaseAdmin()
+        .from("songs")
+        .update({ status: SONG_STATUS.failed })
+        .eq("id", songId)
+        .eq("user_id", user.id);
+    }
+
+    return NextResponse.json({ status: "FAILED", error: result.error });
+  }
+
+  return NextResponse.json({ status: "PENDING" });
 }

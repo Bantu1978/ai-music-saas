@@ -121,7 +121,16 @@
     "totalUsers": "{count} utilisateur(s)",
     "pagePrevious": "Précédent",
     "pageNext": "Suivant",
-    "pageStatus": "Page {page} sur {pages}"
+    "pageStatus": "Page {page} sur {pages}",
+    "stuckSection": "Générations bloquées",
+    "stuckCount": "{count} en attente",
+    "stuckHint": "Ces générations n'ont jamais été réconciliées : le client a fermé son onglet avant la fin. Le crédit est débité, mais le morceau est souvent terminé chez Suno. « Récupérer » le rattache au compte du client ; « Rembourser » abandonne et rend le crédit.",
+    "reconcile": "Récupérer",
+    "refund": "Rembourser",
+    "refundConfirm": "Abandonner cette génération et rendre le crédit au client ?",
+    "stillPending": "Suno n'a pas encore terminé cette génération. Réessayez plus tard.",
+    "noTaskRef": "Aucune référence de tâche : seul le remboursement est possible.",
+    "untitled": "Sans titre"
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",

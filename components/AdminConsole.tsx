@@ -27,6 +27,17 @@ type Transaction = {
   user: string | null;
 };
 
+/** Génération restée en attente, jamais réconciliée. */
+type StuckSong = {
+  id: string;
+  title: string | null;
+  genre: string | null;
+  createdAt: string;
+  /** Une référence de tâche existe : Suno peut encore être interrogé. */
+  recoverable: boolean;
+  user: string | null;
+};
+
 type AdminData = {
   profiles: Profile[];
   /** Total hors pagination, pour calculer le nombre de pages. */
@@ -37,6 +48,7 @@ type AdminData = {
   page: number;
   songs: Song[];
   transactions: Transaction[];
+  stuckSongs: StuckSong[];
 };
 
 /**
@@ -58,6 +70,7 @@ async function loadAdminData(query: string, page: number): Promise<AdminData> {
     page: data.page || 1,
     songs: data.songs ?? [],
     transactions: data.transactions ?? [],
+    stuckSongs: data.stuckSongs ?? [],
   };
 }
 
@@ -76,6 +89,10 @@ export default function AdminConsole() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [stuckSongs, setStuckSongs] = useState<StuckSong[]>([]);
+  // Identifiant de la génération en cours de traitement, pour n'immobiliser que
+  // sa propre ligne plutôt que tout le panneau.
+  const [resolving, setResolving] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
@@ -106,6 +123,7 @@ export default function AdminConsole() {
     setPage(data.page);
     setSongs(data.songs);
     setTransactions(data.transactions);
+    setStuckSongs(data.stuckSongs);
     setError(null);
   };
 
@@ -152,6 +170,37 @@ export default function AdminConsole() {
   const handleSearch = (value: string) => {
     setBusy(true);
     setSearch(value);
+  };
+
+  const handleResolve = async (songId: string, action: "reconcile" | "refund") => {
+    if (action === "refund" && !window.confirm(t("refundConfirm"))) return;
+
+    setResolving(songId);
+    try {
+      const res = await fetch("/api/admin/songs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId, action }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || `Error ${res.status}`);
+        return;
+      }
+
+      // « still_pending » n'est pas une erreur : Suno n'a simplement pas encore
+      // fini. Le dire explicitement évite de cliquer en boucle.
+      if (data.outcome === "still_pending") {
+        setError(t("stillPending"));
+        return;
+      }
+
+      setBusy(true);
+      setReloadToken((token) => token + 1);
+    } finally {
+      setResolving(null);
+    }
   };
 
   const handleAddCredits = async (userId: string) => {
@@ -267,6 +316,57 @@ export default function AdminConsole() {
               </div>
             )}
           </section>
+
+          {stuckSongs.length > 0 && (
+            <section className="bg-zinc-900 border-2 border-amber-500/40 rounded-2xl p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+                <h2 className="text-xl font-bold text-amber-400">{t("stuckSection")}</h2>
+                <p className="text-xs text-zinc-500">
+                  {t("stuckCount", { count: stuckSongs.length })}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-400 mb-5 max-w-2xl leading-relaxed">
+                {t("stuckHint")}
+              </p>
+
+              <div className="space-y-3">
+                {stuckSongs.map((song) => (
+                  <div
+                    key={song.id}
+                    className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex flex-wrap items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm truncate">
+                        {song.title || t("untitled")}
+                      </h3>
+                      <p className="text-xs text-zinc-400">
+                        {song.user || t("unknownUser")} • {song.genre} •{" "}
+                        {formatDate(song.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleResolve(song.id, "reconcile")}
+                        disabled={!song.recoverable || resolving === song.id}
+                        title={song.recoverable ? undefined : t("noTaskRef")}
+                        className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-xs px-3 py-1.5 rounded-lg font-bold transition"
+                      >
+                        {t("reconcile")}
+                      </button>
+                      <button
+                        onClick={() => handleResolve(song.id, "refund")}
+                        disabled={resolving === song.id}
+                        className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-xs px-3 py-1.5 rounded-lg font-bold transition"
+                      >
+                        {t("refund")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">

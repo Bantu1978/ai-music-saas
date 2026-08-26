@@ -55,3 +55,79 @@ export function extractClips(response: unknown): SunoClip[] {
   }
   return [];
 }
+
+const RECORD_INFO_URL = "https://api.sunoapi.org/api/v1/generate/record-info";
+
+/**
+ * État d'une tâche, normalisé.
+ *
+ * `PENDING` couvre aussi bien une génération réellement en cours qu'un incident
+ * réseau ou une réponse illisible : dans tous ces cas la conduite à tenir est la
+ * même — réessayer plus tard, ne rien conclure.
+ */
+export type SunoTaskResult =
+  | { status: "SUCCESS"; audioUrl: string; lyrics: string | null; title: string | null }
+  | { status: "FAILED"; error: string }
+  | { status: "PENDING" };
+
+/**
+ * Interroge Suno sur une tâche et en tire un verdict exploitable.
+ *
+ * Concentré ici parce que deux appelants en dépendent : le suivi côté client
+ * (/api/generate/status) et le rattrapage côté administration, qui doit pouvoir
+ * conclure sur une génération abandonnée. Les faire diverger reviendrait à ce
+ * que la console et le studio ne racontent pas la même histoire.
+ */
+export async function fetchSunoTask(
+  taskId: string,
+  apiKey: string,
+  timeoutMs = 20_000
+): Promise<SunoTaskResult> {
+  let payload: SunoRecordInfoResponse | null = null;
+
+  try {
+    const res = await fetch(`${RECORD_INFO_URL}?taskId=${encodeURIComponent(taskId)}`, {
+      headers: { Authorization: `Bearer ${apiKey.trim()}` },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    const raw = await res.text();
+    try {
+      payload = JSON.parse(raw) as SunoRecordInfoResponse;
+    } catch {
+      // Réponse non-JSON : état transitoire.
+      return { status: "PENDING" };
+    }
+  } catch {
+    // Incident réseau ou dépassement de délai : transitoire également.
+    return { status: "PENDING" };
+  }
+
+  const task = payload?.data ?? {};
+
+  if (task.status === "SUCCESS" && task.response) {
+    const clip = extractClips(task.response)[0];
+    const audioUrl =
+      clip?.audioUrl || clip?.audio_url || clip?.stream_url || clip?.cdn_url;
+
+    // Un SUCCESS sans piste audio n'est pas exploitable : traité comme en cours
+    // plutôt que comme un échec, la piste pouvant encore apparaître.
+    if (audioUrl) {
+      return {
+        status: "SUCCESS",
+        audioUrl,
+        lyrics: clip?.metadata?.prompt || clip?.lyric || clip?.prompt || null,
+        title: clip?.title || null,
+      };
+    }
+  }
+
+  if (task.status === "FAILED" || task.status === "CREATE_TASK_FAILED") {
+    return {
+      status: "FAILED",
+      error: task.errorMessage || "La génération a échoué chez Suno.",
+    };
+  }
+
+  return { status: "PENDING" };
+}
