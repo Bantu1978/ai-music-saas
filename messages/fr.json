@@ -96,7 +96,17 @@
     "packDiscovery": "Pack Découverte",
     "packCreator": "Pack Créateur",
     "packPro": "Pack Pro",
-    "displayedFor": "Prix affichés pour {country}, en {currency}."
+    "displayedFor": "Prix affichés pour {country}, en {currency}.",
+    "opening": "Ouverture du paiement...",
+    "chargedInXaf": "Paiement encaissé en francs CFA (XAF). Les autres devises sont indicatives.",
+    "signInFirst": "Connectez-vous pour acheter des crédits.",
+    "checkoutFailed": "Le paiement n'a pas pu être ouvert. Réessayez dans un instant.",
+    "issue_credited": "Paiement confirmé. Vos crédits ont été ajoutés à votre compte.",
+    "issue_already": "Ce paiement a déjà été crédité sur votre compte.",
+    "issue_pending": "Paiement en cours de confirmation. Vos crédits arriveront dans quelques instants.",
+    "issue_unverified": "Confirmation impossible pour le moment. Si le montant a été débité, vos crédits seront ajoutés automatiquement.",
+    "issue_failed": "Le paiement n'a pas abouti. Aucun montant n'a été débité.",
+    "issue_unknown": "Paiement introuvable. Contactez-nous si un montant a été débité."
   },
   "Admin": {
     "title": "Console d'administration",

@@ -96,7 +96,17 @@
     "packDiscovery": "Discovery Pack",
     "packCreator": "Creator Pack",
     "packPro": "Pro Pack",
-    "displayedFor": "Prices shown for {country}, in {currency}."
+    "displayedFor": "Prices shown for {country}, in {currency}.",
+    "opening": "Opening payment...",
+    "chargedInXaf": "Charged in CFA francs (XAF). Other currencies are indicative.",
+    "signInFirst": "Sign in to buy credits.",
+    "checkoutFailed": "The payment could not be opened. Please try again shortly.",
+    "issue_credited": "Payment confirmed. Your credits have been added to your account.",
+    "issue_already": "This payment has already been credited to your account.",
+    "issue_pending": "Payment awaiting confirmation. Your credits will arrive shortly.",
+    "issue_unverified": "Confirmation unavailable right now. If you were charged, your credits will be added automatically.",
+    "issue_failed": "The payment did not go through. You have not been charged.",
+    "issue_unknown": "Payment not found. Contact us if you were charged."
   },
   "Admin": {
     "title": "Administration Console",

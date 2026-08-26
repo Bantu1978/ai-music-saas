@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { SIGNUP_CREDITS } from "@/lib/signupOffer";
+import { PACKS, type PackId } from "@/lib/packs";
 
 /**
  * La ligne de confirmation nomme la devise, obtenue via Intl.
@@ -33,16 +35,46 @@ const COUNTRIES = [
   { code: "US", name: "États-Unis / Canada", currency: "USD", rate: 0.0016, symbol: "$" },
 ];
 
-const PACKS = [
-  { credits: 3, baseFcfa: 2990, labelKey: "packDiscovery", popular: false },
-  { credits: 10, baseFcfa: 8900, labelKey: "packCreator", popular: true },
-  { credits: 25, baseFcfa: 19900, labelKey: "packPro", popular: false },
-] as const;
+
 
 export default function PricingPage() {
   const t = useTranslations("Pricing");
   const locale = useLocale();
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+
+  // Pack en cours d'ouverture : n'immobilise que son propre bouton.
+  const [ouverture, setOuverture] = useState<PackId | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  // Issue rapportée par /api/payments/callback au retour de Notch Pay.
+  // Dérivée, pas stockée : useSearchParams est déjà réactif, et un effet qui
+  // recopie sa valeur dans un état ne ferait qu'ajouter un rendu en cascade.
+  const issue = useSearchParams().get("paiement");
+
+  const acheter = async (packId: PackId) => {
+    setErreur(null);
+    setOuverture(packId);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId, locale }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErreur(res.status === 401 ? t("signInFirst") : data.error || t("checkoutFailed"));
+        return;
+      }
+
+      // Départ vers la page de paiement Notch Pay, hors de l'application.
+      window.location.assign(data.authorizationUrl);
+    } catch {
+      setErreur(t("checkoutFailed"));
+    } finally {
+      setOuverture(null);
+    }
+  };
 
   // Nom de devise localisé, plutôt qu'une table maison à tenir à jour. Intl
   // distingue en outre XAF (BEAC) de XOF (BCEAO) : deux pays de la zone franc
@@ -107,7 +139,31 @@ export default function PricingPage() {
             currency: currencyLabel(selectedCountry.currency),
           })}
         </p>
+
+        {/* Les conversions ci-dessus sont indicatives : Notch Pay encaisse en
+            francs CFA. Le dire évite la mauvaise surprise au moment de payer. */}
+        <p className="mt-1 text-xs text-zinc-500">{t("chargedInXaf")}</p>
       </div>
+
+      {issue && (
+        <div
+          className={`max-w-2xl mx-auto mb-8 p-4 rounded-xl border-2 text-sm text-center ${
+            issue === "credited" || issue === "already"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+              : issue === "failed"
+                ? "bg-red-500/10 border-red-500/30 text-red-400"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+          }`}
+        >
+          {t(`issue_${issue}`)}
+        </div>
+      )}
+
+      {erreur && (
+        <div className="max-w-2xl mx-auto mb-8 p-4 rounded-xl bg-red-500/10 border-2 border-red-500/30 text-red-400 text-sm text-center">
+          {erreur}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {PACKS.map((pack) => (
@@ -127,7 +183,7 @@ export default function PricingPage() {
               <h2 className="text-xl font-bold">{t(pack.labelKey)}</h2>
               <div className="my-6">
                 <span className="text-3xl sm:text-4xl font-black">
-                  {formatPrice(pack.baseFcfa)}
+                  {formatPrice(pack.priceXaf)}
                 </span>
               </div>
               <div className="border-t border-zinc-800 pt-4 text-base font-bold text-indigo-400 mb-6">
@@ -135,8 +191,12 @@ export default function PricingPage() {
               </div>
             </div>
 
-            <button className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/25">
-              {t("buy")}
+            <button
+              onClick={() => acheter(pack.id)}
+              disabled={ouverture !== null}
+              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/25"
+            >
+              {ouverture === pack.id ? t("opening") : t("buy")}
             </button>
           </div>
         ))}
