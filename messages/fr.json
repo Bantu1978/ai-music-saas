@@ -59,6 +59,8 @@
     "genreLabel": "Style musical / Genre",
     "submit": "Générer le morceau (1 crédit)",
     "generating": "Composition & enregistrement vocal en cours",
+    "waitTitle": "Génération en cours — merci de patienter",
+    "waitBody": "Le traitement dure généralement une à trois minutes, et cinq au maximum. Gardez cette page ouverte : votre morceau et son bouton de téléchargement apparaîtront ici dès qu'il sera prêt.",
     "successTitle": "🎉 Morceau généré avec succès !",
     "lyricsTitle": "Paroles chantées :",
     "download": "Télécharger le MP3",
@@ -87,6 +89,8 @@
     "history": "Vos dernières générations",
     "empty": "Aucune chanson générée pour le moment.",
     "create": "+ Créer une chanson",
+    "download": "Télécharger le MP3",
+    "pendingHint": "Génération en cours — le bouton de téléchargement apparaîtra ici une fois le morceau prêt.",
     "signedOut": "Connectez-vous pour voir vos créations."
   },
   "Pricing": {
