@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD_LENGTH = 8;
 
 export default function UpdatePasswordForm() {
   const t = useTranslations("ResetPassword");
-  const locale = useLocale();
+  // Le routeur de next-intl préfixe lui-même la langue : plus besoin de la lire.
+  const router = useRouter();
   const supabase = createClient();
 
   const [password, setPassword] = useState("");
@@ -36,8 +38,11 @@ export default function UpdatePasswordForm() {
       if (updateError) throw updateError;
 
       setDone(true);
-      // Rechargement complet : la session vient d'être réémise côté serveur.
-      window.location.assign(`/${locale}/generate`);
+      // La session vient d'être réémise : le `refresh` fait rejouer les
+      // composants serveur avec elle, ce qu'une simple navigation douce ne
+      // garantirait pas.
+      router.push("/generate");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setPending(false);
