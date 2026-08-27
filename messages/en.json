@@ -59,6 +59,8 @@
     "genreLabel": "Musical style / Genre",
     "submit": "Generate track (1 credit)",
     "generating": "Composing & recording vocals",
+    "waitTitle": "Generation in progress — please wait",
+    "waitBody": "Processing usually takes one to three minutes, and five at most. Keep this page open: your track and its download button will appear here as soon as it is ready.",
     "successTitle": "🎉 Track generated successfully!",
     "lyricsTitle": "Lyrics:",
     "download": "Download MP3",
@@ -87,6 +89,8 @@
     "history": "Your latest generations",
     "empty": "No track generated yet.",
     "create": "+ Create a song",
+    "download": "Download MP3",
+    "pendingHint": "Generation in progress — the download button will appear here once the track is ready.",
     "signedOut": "Sign in to see your tracks."
   },
   "Pricing": {

@@ -229,6 +229,25 @@ export default function StudioForm({
         </button>
       </form>
 
+      {/* Pendant la génération, le seul retour visuel était le compteur logé
+          dans le bouton. Cinq minutes d'attente sans explication invitent à
+          recharger la page — ce qui perd le suivi de la tâche. Ce panneau dit
+          la durée attendue et où le morceau apparaîtra. */}
+      {loading && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="w-full mt-6 p-5 rounded-2xl bg-indigo-500/10 border-2 border-indigo-500/30"
+        >
+          <p className="font-bold text-indigo-300 mb-1 flex items-center gap-2">
+            <span className="animate-spin inline-block">⏳</span>
+            {t("waitTitle")}
+          </p>
+          <p className="text-indigo-200/80 text-sm leading-relaxed">{t("waitBody")}</p>
+          {statusText && <p className="mt-3 text-xs text-indigo-300/60">{statusText}</p>}
+        </div>
+      )}
+
       {!unlimited && credits < 1 && !loading && (
         <div className="w-full mt-6 p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-center">
           <p className="font-bold text-amber-300 mb-1">{t("noCreditsTitle")}</p>
@@ -249,21 +268,25 @@ export default function StudioForm({
 
           <audio controls src={song.audioUrl} className="w-full rounded-lg mb-6" />
 
+          {/* Le téléchargement passe avant les paroles : c'est ce que le client
+              vient chercher, et des paroles longues le repoussaient sous la
+              ligne de flottaison, où il fallait le deviner. */}
+          <a
+            href={`/api/download?songId=${encodeURIComponent(song.songId)}`}
+            className="flex w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-bold px-6 py-4 rounded-xl transition shadow-lg shadow-green-600/30 text-base"
+          >
+            <span aria-hidden="true">⬇</span>
+            {t("download")}
+          </a>
+
           {song.lyrics && (
-            <div className="bg-zinc-950 p-4 rounded-lg mb-6 border border-zinc-800">
+            <div className="bg-zinc-950 p-4 rounded-lg mt-6 border border-zinc-800">
               <h3 className="text-sm font-semibold text-zinc-300 mb-2">{t("lyricsTitle")}</h3>
               <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">
                 {song.lyrics}
               </pre>
             </div>
           )}
-
-          <a
-            href={`/api/download?songId=${encodeURIComponent(song.songId)}`}
-            className="inline-block w-full sm:w-auto text-center bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition"
-          >
-            {t("download")}
-          </a>
         </div>
       )}
     </div>
