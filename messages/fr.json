@@ -9,7 +9,8 @@
     "logout": "Déconnexion",
     "credits": "crédits",
     "menuOpen": "Ouvrir le menu",
-    "menuClose": "Fermer le menu"
+    "menuClose": "Fermer le menu",
+    "support": "Assistance"
   },
   "Auth": {
     "title": "Connexion à BAKUMELO",
@@ -167,7 +168,27 @@
     "checkPayment": "Vérifier",
     "paymentStillPending": "Notch Pay n'a pas encore confirmé cet encaissement. Réessayez plus tard.",
     "paymentNotOpened": "Le paiement n'a jamais été ouvert chez Notch Pay : rien à vérifier.",
-    "creditsWord": "crédits"
+    "creditsWord": "crédits",
+    "claimsSection": "Réclamations clients",
+    "claimsHint": "Les réclamations déposées depuis la page Assistance. La note interne ne quitte jamais cette console : aucun envoi au client n'existe tant qu'aucun SMTP n'est configuré.",
+    "claimsEmpty": "Aucune réclamation pour le moment.",
+    "claimsSearchPlaceholder": "Rechercher par email, nom, référence ou message...",
+    "claimsFilterAll": "Toutes",
+    "claimsTotal": "{count} réclamation(s)",
+    "claimStatus_ouverte": "Ouverte",
+    "claimStatus_en_cours": "En cours",
+    "claimStatus_resolue": "Résolue",
+    "claimCategory_paiement": "Paiement ou crédits",
+    "claimCategory_generation": "Morceau non généré",
+    "claimCategory_qualite": "Qualité du morceau",
+    "claimCategory_compte": "Accès au compte",
+    "claimCategory_autre": "Autre",
+    "claimNoteLabel": "Note interne",
+    "claimNotePlaceholder": "Ce qui a été fait, ce qui reste à faire...",
+    "claimNoteSave": "Enregistrer la note",
+    "claimSaved": "Enregistré",
+    "claimVisitor": "Visiteur (sans compte)",
+    "claimRefLabel": "Référence"
   },
   "ResetPassword": {
     "title": "Choisir un nouveau mot de passe",
@@ -183,5 +204,34 @@
     "invalidTitle": "Lien invalide ou expiré",
     "invalidBody": "Ce lien de réinitialisation n'est plus valable. Demandez-en un nouveau depuis la fenêtre de connexion.",
     "backHome": "Retour à l'accueil"
+  },
+  "Claims": {
+    "title": "Réclamations",
+    "subtitle": "Un paiement non crédité, un morceau qui ne se génère pas, un problème de compte ? Décrivez-nous ce qui s'est passé.",
+    "expectations": "Votre réclamation est enregistrée et traitée par notre équipe. Nous n'envoyons pas encore d'accusé de réception par email : conservez le numéro de dossier affiché après l'envoi, il nous permettra de retrouver votre demande.",
+    "signedInAs": "Réclamation déposée au nom de",
+    "emailLabel": "Votre adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "emailHint": "Indispensable pour vous recontacter au sujet de cette réclamation.",
+    "nameLabel": "Votre nom (facultatif)",
+    "namePlaceholder": "Nom et prénom",
+    "categoryLabel": "Motif",
+    "category_paiement": "Paiement ou crédits",
+    "category_generation": "Morceau non généré",
+    "category_qualite": "Qualité du morceau",
+    "category_compte": "Accès au compte",
+    "category_autre": "Autre",
+    "referenceLabel": "Référence (facultatif)",
+    "referencePlaceholder": "bkm_… ou le titre du morceau",
+    "referenceHint": "Numéro de paiement ou titre du morceau concerné, si vous l'avez.",
+    "messageLabel": "Votre message",
+    "messagePlaceholder": "Décrivez le problème : ce que vous avez fait, ce qui était attendu, ce qui s'est produit.",
+    "submit": "Envoyer ma réclamation",
+    "sending": "Envoi en cours…",
+    "sentTitle": "Réclamation enregistrée",
+    "sentBody": "Nous l'examinons et vous recontacterons à l'adresse indiquée. Notez le numéro ci-dessous : il identifie votre dossier.",
+    "ticketLabel": "Numéro de dossier",
+    "errorTooShort": "Votre message doit faire au moins {min} caractères.",
+    "errorGeneric": "Envoi impossible. Merci de réessayer."
   }
 }

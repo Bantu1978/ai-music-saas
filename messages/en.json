@@ -9,7 +9,8 @@
     "logout": "Sign Out",
     "credits": "credits",
     "menuOpen": "Open menu",
-    "menuClose": "Close menu"
+    "menuClose": "Close menu",
+    "support": "Support"
   },
   "Auth": {
     "title": "Sign in to BAKUMELO",
@@ -167,7 +168,27 @@
     "checkPayment": "Check",
     "paymentStillPending": "Notch Pay has not confirmed this settlement yet. Try again later.",
     "paymentNotOpened": "This payment was never opened at Notch Pay: nothing to check.",
-    "creditsWord": "credits"
+    "creditsWord": "credits",
+    "claimsSection": "Customer complaints",
+    "claimsHint": "Complaints filed from the Support page. The internal note never leaves this console: no message is sent to the customer while no SMTP is configured.",
+    "claimsEmpty": "No complaints yet.",
+    "claimsSearchPlaceholder": "Search by email, name, reference or message...",
+    "claimsFilterAll": "All",
+    "claimsTotal": "{count} complaint(s)",
+    "claimStatus_ouverte": "Open",
+    "claimStatus_en_cours": "In progress",
+    "claimStatus_resolue": "Resolved",
+    "claimCategory_paiement": "Payment or credits",
+    "claimCategory_generation": "Track not generated",
+    "claimCategory_qualite": "Track quality",
+    "claimCategory_compte": "Account access",
+    "claimCategory_autre": "Other",
+    "claimNoteLabel": "Internal note",
+    "claimNotePlaceholder": "What was done, what is left to do...",
+    "claimNoteSave": "Save note",
+    "claimSaved": "Saved",
+    "claimVisitor": "Visitor (no account)",
+    "claimRefLabel": "Reference"
   },
   "ResetPassword": {
     "title": "Choose a new password",
@@ -183,5 +204,34 @@
     "invalidTitle": "Invalid or expired link",
     "invalidBody": "This reset link is no longer valid. Request a new one from the sign-in window.",
     "backHome": "Back to home"
+  },
+  "Claims": {
+    "title": "Complaints",
+    "subtitle": "A payment not credited, a track that will not generate, an account problem? Tell us what happened.",
+    "expectations": "Your complaint is recorded and reviewed by our team. We do not send email acknowledgements yet: keep the case number shown after sending, it lets us find your request.",
+    "signedInAs": "Filing as",
+    "emailLabel": "Your email address",
+    "emailPlaceholder": "you@example.com",
+    "emailHint": "Required so we can get back to you about this complaint.",
+    "nameLabel": "Your name (optional)",
+    "namePlaceholder": "First and last name",
+    "categoryLabel": "Reason",
+    "category_paiement": "Payment or credits",
+    "category_generation": "Track not generated",
+    "category_qualite": "Track quality",
+    "category_compte": "Account access",
+    "category_autre": "Other",
+    "referenceLabel": "Reference (optional)",
+    "referencePlaceholder": "bkm_… or the track title",
+    "referenceHint": "Payment reference or title of the track concerned, if you have it.",
+    "messageLabel": "Your message",
+    "messagePlaceholder": "Describe the problem: what you did, what you expected, what happened.",
+    "submit": "Send my complaint",
+    "sending": "Sending…",
+    "sentTitle": "Complaint recorded",
+    "sentBody": "We are reviewing it and will get back to you at the address provided. Note the number below: it identifies your case.",
+    "ticketLabel": "Case number",
+    "errorTooShort": "Your message must be at least {min} characters.",
+    "errorGeneric": "Could not send. Please try again."
   }
 }
