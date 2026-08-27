@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             {list.map((song) => (
               <li
                 key={song.id}
-                className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex items-center justify-between gap-4"
+                className="p-4 bg-zinc-950 rounded-xl border border-zinc-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
               >
                 <div className="min-w-0">
                   <h3 className="font-bold text-sm truncate">{song.title}</h3>
@@ -87,9 +87,28 @@ export default async function DashboardPage() {
                     {song.genre} • {song.status}
                   </p>
                 </div>
-                {song.audio_url && (
-                  <audio controls src={song.audio_url} className="h-8 w-48 sm:w-64 shrink-0" />
-                )}
+
+                {/* Le téléchargement était absent de cette page : seul un
+                    lecteur audio y figurait, et récupérer son morceau imposait
+                    de repasser par le studio. Il devient l'action visible de
+                    chaque ligne. La colonne passe en pile sur mobile, faute de
+                    quoi lecteur et bouton s'écrasent. */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:shrink-0">
+                  {song.audio_url && (
+                    <audio controls src={song.audio_url} className="h-8 w-full sm:w-56" />
+                  )}
+                  {song.audio_url ? (
+                    <a
+                      href={`/api/download?songId=${encodeURIComponent(song.id)}`}
+                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-green-600/30 text-sm whitespace-nowrap"
+                    >
+                      <span aria-hidden="true">⬇</span>
+                      {t("download")}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-zinc-500 sm:max-w-[15rem]">{t("pendingHint")}</p>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
