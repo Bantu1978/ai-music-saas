@@ -1,4 +1,5 @@
 import { URL_NAMES, KEY_NAMES } from "./supabaseEnv";
+import { webhookStrict } from "./notchpay";
 
 /**
  * État de la configuration, vu depuis le serveur qui tourne réellement.
@@ -153,13 +154,26 @@ export function configHealth(): ConfigEntree[] {
       return { note: "clé non reconnue" };
     }),
 
+    // Le secret seul ne protège rien : il permet de *calculer* un verdict, mais
+    // c'est NOTCHPAY_WEBHOOK_STRICT qui décide si une signature fausse fait
+    // rejeter l'appel. Annoncer « vérification stricte » sur la seule présence
+    // du secret laisserait croire à une protection qui n'existe pas.
     entree(
       "notchpay_secret",
       "Signature des webhooks",
       ["NOTCHPAY_WEBHOOK_SECRET"],
       false,
-      () => ({ note: "vérification stricte activée" }),
-      { note: "Notch Pay n'en délivre pas — sans effet sur la sécurité" }
+      () =>
+        webhookStrict()
+          ? { note: "secret présent, signature vérifiée et imposée" }
+          : {
+              statut: "attention",
+              note: "secret présent, mais signature seulement tolérée — poser NOTCHPAY_WEBHOOK_STRICT=1 une fois une livraison confirmée",
+            },
+      {
+        statut: "attention",
+        note: "absent — l'origine des appels au webhook n'est pas vérifiable",
+      }
     ),
 
     entree("maintenance", "Mode « site en construction »", ["MAINTENANCE_MODE"], false, (v) => {
