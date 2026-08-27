@@ -136,6 +136,9 @@ export default function SiteHeader() {
     { href: "/generate", libelle: t("studio"), accent: false },
     { href: "/dashboard", libelle: t("dashboard"), accent: false },
     { href: "/pricing", libelle: t("pricing"), accent: false },
+    // Ouverte à tous, connectés ou non : un client bloqué au paiement ou à la
+    // connexion doit pouvoir la joindre sans compte.
+    { href: "/support", libelle: t("support"), accent: false },
     ...(admin ? [{ href: "/admin", libelle: t("admin"), accent: true }] : []),
   ];
 
