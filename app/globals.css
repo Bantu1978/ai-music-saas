@@ -7,8 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* `--font-inter` est posée par next/font dans le layout. Auparavant cette
+     ligne se lisait `--font-sans: var(--font-sans)` : une variable définie par
+     elle-même, donc invalide, et toute la typographie retombait sur le serif
+     par défaut du navigateur. `--font-geist-mono` n'était, elle, définie nulle
+     part. Une pile système suit chaque fonte, au cas où le téléchargement
+     échouerait. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
