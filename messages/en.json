@@ -115,7 +115,11 @@
     "issue_unverified": "Confirmation in progress. If you were charged, your credits will be added automatically.",
     "issue_failed": "The payment did not go through. You have not been charged.",
     "issue_unknown": "Payment not found. Contact us if you were charged.",
-    "awaitingConfirmation": "Checking... this page will update on its own."
+    "awaitingConfirmation": "Checking... this page will update on its own.",
+    "unavailableTitle": "Online payment is being activated",
+    "unavailableBody": "Our payment provider is finalising the opening of the merchant account. In the meantime, write to us: we will top up your account manually, without delay.",
+    "unavailableCta": "Contact us",
+    "unavailableButton": "Coming soon"
   },
   "Admin": {
     "title": "Administration Console",
