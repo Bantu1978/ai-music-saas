@@ -201,6 +201,22 @@ export function signatureVerdict(rawBody: string, signature: string | null): Ver
  * couperait les paiements sur une simple hypothèse. Le verdict est rapporté
  * dans la réponse au webhook, ce qui permet de trancher avant de durcir.
  */
+/**
+ * L'encaissement réel est-il possible ?
+ *
+ * Faux tant que la clé est absente ou de test. Dans ce cas Notch Pay ouvre bien
+ * une page de paiement, mais fictive : elle expire sans rien encaisser, et le
+ * client reste sans crédits sans comprendre pourquoi. C'est arrivé le 27 août.
+ *
+ * Sert à prévenir le visiteur avant qu'il ne s'engage. La fonction lit la clé
+ * mais n'en renvoie rien : seule la réponse booléenne sort d'ici, et jamais
+ * vers le navigateur autrement que sous cette forme.
+ */
+export function paiementReelDisponible(): boolean {
+  const key = (process.env.NOTCHPAY_PUBLIC_KEY || "").trim();
+  return key.startsWith("pk_live");
+}
+
 export function webhookStrict(): boolean {
   const v = (process.env.NOTCHPAY_WEBHOOK_STRICT || "").trim().toLowerCase();
   return v === "1" || v === "true" || v === "on";
