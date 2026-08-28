@@ -29,6 +29,7 @@ export default async function SiteFooter() {
     // c'est là qu'on les cherche, et les mettre dans la barre principale
     // encombrerait la navigation d'un lien qu'on consulte une fois.
     { href: "/terms", libelle: t("terms") },
+    { href: "/privacy", libelle: t("privacy") },
   ];
 
   return (

@@ -11,7 +11,8 @@
     "menuOpen": "Open menu",
     "menuClose": "Close menu",
     "support": "Support",
-    "terms": "Terms"
+    "terms": "Terms",
+    "privacy": "Privacy"
   },
   "Auth": {
     "title": "Sign in to BAKUMELO",
@@ -261,5 +262,12 @@
     "draftBody": "The provider identification details are not yet filled in. This text cannot be relied upon as it stands and must be reviewed by a lawyer before being invoked.",
     "questions": "A question about these terms?",
     "supportLink": "Write to us from the Support page."
+  },
+  "Privacy": {
+    "title": "Privacy policy",
+    "lastUpdated": "Last updated: {date}",
+    "intro": "This document sets out what data we collect, why, who it is passed to, and how long it is kept. It describes our actual practices, and will be revised if those change.",
+    "exercise": "To exercise your rights or ask a question:",
+    "supportLink": "write to us from the Support page."
   }
 }
