@@ -10,32 +10,45 @@
  * lib/signupOffer.ts. Un tarif modifié d'un côté et oublié de l'autre ferait
  * mentir le contrat, ce qui est plus grave qu'un affichage erroné.
  *
- * DEUX RÉSERVES, à lever avant de s'en prévaloir :
+ * Sur la section 6, et pourquoi elle ne promet pas la propriété pleine.
  *
- *   1. Les mentions d'identification — raison sociale, RCCM, adresse, tribunal
- *      compétent — sont des marqueurs à remplacer. Tant que IDENTITE_COMPLETE
- *      vaut false, la page affiche un bandeau le disant.
+ * Vérification faite auprès de Suno : la propriété du morceau n'est cédée
+ * qu'aux abonnés payants, et elle vest au titulaire du compte. Or les
+ * générations passent par un intermédiaire, dont le compte est sollicité à la
+ * place de celui du client. Suno ne publie par ailleurs aucune API officielle,
+ * ce qui rend le premier maillon de la chaîne incertain.
  *
- *   2. Le service accorde au client la propriété pleine de son morceau. Cet
- *      engagement ne peut pas dépasser ce que le fournisseur de génération
- *      accorde lui-même en amont. Cette chaîne de droits n'a pas été vérifiée
- *      contre les conditions de sunoapi.org.
+ * On ne cède pas plus de droits qu'on n'en détient. Promettre à un client
+ * payant une propriété que le prestataire ne peut pas garantir l'exposerait
+ * bien davantage qu'une clause prudente : la section cède donc les droits
+ * réellement détenus, sans en garantir l'étendue, et invite le client à
+ * vérifier avant toute exploitation commerciale. L'usage privé, lui, n'est
+ * soumis à aucune restriction.
  */
 
 import { PACKS } from "./packs";
 import { SIGNUP_CREDITS } from "./signupOffer";
 
-/** Passer à true une fois les marqueurs ci-dessous remplacés. */
-export const IDENTITE_COMPLETE = false;
+/**
+ * Faux tant que les mentions ci-dessous ne sont pas renseignées : la page
+ * affiche alors un bandeau disant qu'elle n'est pas opposable. Renseignées, le
+ * bandeau disparaît de lui-même.
+ */
+export const IDENTITE_COMPLETE = true;
 
-/** Marqueurs à remplacer par les mentions légales réelles. */
 export const IDENTITE = {
-  raisonSociale: "[RAISON SOCIALE]",
-  forme: "[FORME JURIDIQUE]",
-  immatriculation: "[N° RCCM]",
-  adresse: "[ADRESSE DU SIÈGE]",
-  email: "[EMAIL DE CONTACT]",
-  juridiction: "[TRIBUNAL COMPÉTENT]",
+  raisonSociale: "BAKU SERVICES",
+  forme: "société à responsabilité limitée (SARL)",
+  immatriculation: "CM-DLA-02-2024-B13-00042",
+  /** Numéro identifiant unique, exigé sur les documents commerciaux au Cameroun. */
+  niu: "M012416381572P",
+  adresse: "Bonamoussadi Sable, Douala",
+  email: "direction@bakucm.com",
+  /**
+   * Nom nu, sans article : chaque langue pose le sien. Si la juridiction
+   * devenait féminine — une cour d'appel — l'article français serait à revoir.
+   */
+  juridiction: "Tribunal de première instance de Douala",
   pays: "Cameroun",
 };
 
@@ -60,7 +73,7 @@ function sectionsFr(): Section[] {
     {
       titre: "1. Identification du prestataire",
       paragraphes: [
-        `Le service BAKUMELO est édité par ${IDENTITE.raisonSociale}, ${IDENTITE.forme}, immatriculée sous le numéro ${IDENTITE.immatriculation}, dont le siège est situé ${IDENTITE.adresse}, ${IDENTITE.pays}.`,
+        `Le service BAKUMELO est édité par ${IDENTITE.raisonSociale}, ${IDENTITE.forme}, immatriculée au registre du commerce sous le numéro ${IDENTITE.immatriculation}, numéro identifiant unique ${IDENTITE.niu}, dont le siège est situé ${IDENTITE.adresse}, ${IDENTITE.pays}.`,
         `Contact : ${IDENTITE.email}. Les réclamations peuvent également être déposées depuis la page Assistance du site.`,
       ],
     },
@@ -99,8 +112,10 @@ function sectionsFr(): Section[] {
     {
       titre: "6. Droits sur les morceaux générés",
       paragraphes: [
-        "Le client est propriétaire des morceaux générés depuis son compte à l'aide de crédits, y compris pour un usage commercial : diffusion, vente, monétisation, synchronisation.",
-        "BAKUMELO ne revendique aucun droit sur ces morceaux et ne les diffuse pas publiquement sans l'accord écrit de leur titulaire.",
+        "Les morceaux sont produits par un fournisseur tiers de génération musicale. Les droits attachés au fichier produit sont régis en premier lieu par les conditions de ce fournisseur, sur lesquelles BAKUMELO n'a pas la main.",
+        "BAKUMELO ne revendique aucun droit de propriété sur les morceaux générés depuis un compte client, ne les exploite pas et ne les diffuse pas publiquement sans l'accord écrit du client. Le prestataire cède au client l'ensemble des droits qu'il détient lui-même sur le fichier produit, dans la limite de ce que ses propres fournisseurs lui accordent.",
+        "Le prestataire ne garantit en revanche ni l'étendue de ces droits, ni la possibilité d'une exploitation commerciale du morceau. Il est recommandé au client de s'assurer de l'étendue de ses droits avant toute exploitation commerciale — diffusion payante, vente, monétisation, synchronisation ou dépôt auprès d'une société de gestion.",
+        "L'usage privé du morceau — écoute personnelle, cercle familial, événement non commercial — n'est soumis à aucune restriction de la part de BAKUMELO.",
         "Le client garantit que les éléments qu'il fournit — texte, titre, description — ne portent atteinte à aucun droit de tiers, et répond seul de l'usage qu'il fait du morceau produit.",
         "Les systèmes de génération étant probabilistes, deux clients peuvent obtenir des résultats voisins à partir de descriptions semblables. Aucune exclusivité de rendu n'est garantie.",
       ],
@@ -145,7 +160,7 @@ function sectionsFr(): Section[] {
       titre: "12. Droit applicable",
       paragraphes: [
         `Les présentes conditions sont soumises au droit en vigueur au ${IDENTITE.pays}.`,
-        `À défaut de règlement amiable, tout litige relève de la compétence de ${IDENTITE.juridiction}.`,
+        `À défaut de règlement amiable, tout litige sera porté devant le ${IDENTITE.juridiction}.`,
       ],
     },
   ];
@@ -156,7 +171,7 @@ function sectionsEn(): Section[] {
     {
       titre: "1. Provider identification",
       paragraphes: [
-        `BAKUMELO is operated by ${IDENTITE.raisonSociale}, ${IDENTITE.forme}, registered under number ${IDENTITE.immatriculation}, with its registered office at ${IDENTITE.adresse}, ${IDENTITE.pays}.`,
+        `BAKUMELO is operated by ${IDENTITE.raisonSociale}, a limited liability company (SARL), registered under number ${IDENTITE.immatriculation}, tax identification number ${IDENTITE.niu}, with its registered office at ${IDENTITE.adresse}, ${IDENTITE.pays}.`,
         `Contact: ${IDENTITE.email}. Complaints may also be filed from the Support page.`,
       ],
     },
@@ -195,8 +210,10 @@ function sectionsEn(): Section[] {
     {
       titre: "6. Rights in generated tracks",
       paragraphes: [
-        "Customers own the tracks generated from their account using credits, including for commercial purposes: distribution, sale, monetisation, synchronisation.",
-        "BAKUMELO claims no rights in these tracks and does not publish them without the written consent of their owner.",
+        "Tracks are produced by a third-party music generation provider. The rights attaching to the resulting file are governed first and foremost by that provider's terms, over which BAKUMELO has no control.",
+        "BAKUMELO claims no ownership in tracks generated from a customer account, does not exploit them, and does not publish them without the customer's written consent. The provider assigns to the customer all rights it holds itself in the resulting file, to the extent its own suppliers grant them.",
+        "The provider does not, however, warrant the extent of those rights or the possibility of commercial exploitation. Customers are advised to satisfy themselves as to the extent of their rights before any commercial exploitation — paid distribution, sale, monetisation, synchronisation, or registration with a collecting society.",
+        "Private use of the track — personal listening, family circle, non-commercial events — is subject to no restriction on BAKUMELO's part.",
         "Customers warrant that the material they supply — text, title, description — infringes no third-party rights, and are solely answerable for their use of the resulting track.",
         "Generation systems being probabilistic, two customers may obtain similar results from similar descriptions. No exclusivity of output is guaranteed.",
       ],
@@ -241,7 +258,7 @@ function sectionsEn(): Section[] {
       titre: "12. Governing law",
       paragraphes: [
         `These terms are governed by the law in force in ${IDENTITE.pays}.`,
-        `Failing amicable settlement, any dispute falls within the jurisdiction of ${IDENTITE.juridiction}.`,
+        `Failing amicable settlement, any dispute shall be brought before the ${IDENTITE.juridiction}.`,
       ],
     },
   ];
