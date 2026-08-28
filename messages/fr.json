@@ -233,5 +233,15 @@
     "ticketLabel": "Numéro de dossier",
     "errorTooShort": "Votre message doit faire au moins {min} caractères.",
     "errorGeneric": "Envoi impossible. Merci de réessayer."
+  },
+  "Testimonials": {
+    "title": "Écoutez ce que BAKUMELO compose",
+    "subtitle": "Trois morceaux générés sur la plateforme, en écoute intégrale.",
+    "illustrativeNotice": "Les citations ci-dessous sont des exemples destinés à illustrer la mise en page. Elles seront remplacées par de vrais retours clients, avec leur accord.",
+    "quote1": "J'ai offert cette chanson à ma mère pour son anniversaire. Elle a pleuré en l'écoutant.",
+    "quote2": "Notre chorale cherchait un morceau original pour la fête paroissiale. En trois minutes, c'était fait.",
+    "quote3": "Je voulais un zouk pour l'anniversaire de mariage de mes parents. Le résultat a surpris toute la famille.",
+    "listen": "Écouter",
+    "ownTracks": "Morceaux créés par l'équipe BAKUMELO et diffusés avec son accord."
   }
 }

@@ -77,8 +77,15 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Fichiers statiques et images exclus ; tout le reste, API comprise, passe
-    // par le middleware pour que le mode construction ne laisse aucune faille.
-    "/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Fichiers statiques, images et audio exclus ; tout le reste, API comprise,
+    // passe par le middleware pour que le mode construction ne laisse aucune
+    // faille.
+    //
+    // L'audio a été ajouté après coup : sans lui, next-intl préfixait la langue
+    // devant /demos/*.mp3 et le fichier répondait 404 — les démos de la page
+    // d'accueil ne se lisaient tout simplement pas. Les images étaient déjà
+    // traitées ainsi ; l'audio suit la même règle, au même titre qu'un visuel
+    // de présentation.
+    "/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|mp3|wav|ogg|m4a)$).*)",
   ],
 };
