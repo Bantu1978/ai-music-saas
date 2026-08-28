@@ -10,7 +10,8 @@
     "credits": "crédits",
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
-    "support": "Assistance"
+    "support": "Assistance",
+    "terms": "Conditions générales"
   },
   "Auth": {
     "title": "Connexion à BAKUMELO",
@@ -252,5 +253,13 @@
     "tagline": "Créez vos chansons Afro et internationales par intelligence artificielle.",
     "navLabel": "Liens du pied de page",
     "rights": "Tous droits réservés."
+  },
+  "Terms": {
+    "title": "Conditions générales",
+    "lastUpdated": "Dernière mise à jour : {date}",
+    "draftTitle": "Document provisoire",
+    "draftBody": "Les mentions d'identification du prestataire ne sont pas encore renseignées. Ce texte ne peut pas être opposé en l'état et doit être relu par un juriste avant d'être invoqué.",
+    "questions": "Une question sur ces conditions ?",
+    "supportLink": "Écrivez-nous depuis la page Assistance."
   }
 }
