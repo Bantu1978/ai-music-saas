@@ -6,6 +6,7 @@ import { SIGNUP_CREDITS } from "@/lib/signupOffer";
 import { Link } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/AuthModal";
+import DemoSection from "@/components/DemoSection";
 
 export default function LandingPage() {
   const t = useTranslations("HomePage");
@@ -72,6 +73,8 @@ export default function LandingPage() {
           </Link>
         </div>
       </div>
+
+      <DemoSection />
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>

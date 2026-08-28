@@ -233,5 +233,15 @@
     "ticketLabel": "Case number",
     "errorTooShort": "Your message must be at least {min} characters.",
     "errorGeneric": "Could not send. Please try again."
+  },
+  "Testimonials": {
+    "title": "Hear what BAKUMELO composes",
+    "subtitle": "Three tracks generated on the platform, in full.",
+    "illustrativeNotice": "The quotes below are examples meant to illustrate the layout. They will be replaced by real customer feedback, with their consent.",
+    "quote1": "I gave this song to my mother for her birthday. She cried listening to it.",
+    "quote2": "Our choir needed an original track for the parish celebration. Three minutes later, it was done.",
+    "quote3": "I wanted a zouk for my parents' wedding anniversary. The result surprised the whole family.",
+    "listen": "Listen",
+    "ownTracks": "Tracks created by the BAKUMELO team and shared with its consent."
   }
 }
