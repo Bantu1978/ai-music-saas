@@ -247,5 +247,10 @@
     "quote3": "Je voulais un zouk pour l'anniversaire de mariage de mes parents. Le résultat a surpris toute la famille.",
     "listen": "Écouter",
     "ownTracks": "Morceaux créés par l'équipe BAKUMELO et diffusés avec son accord."
+  },
+  "Footer": {
+    "tagline": "Créez vos chansons Afro et internationales par intelligence artificielle.",
+    "navLabel": "Liens du pied de page",
+    "rights": "Tous droits réservés."
   }
 }

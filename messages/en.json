@@ -247,5 +247,10 @@
     "quote3": "I wanted a zouk for my parents' wedding anniversary. The result surprised the whole family.",
     "listen": "Listen",
     "ownTracks": "Tracks created by the BAKUMELO team and shared with its consent."
+  },
+  "Footer": {
+    "tagline": "Create your Afro and international songs with artificial intelligence.",
+    "navLabel": "Footer links",
+    "rights": "All rights reserved."
   }
 }

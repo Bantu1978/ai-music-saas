@@ -4,6 +4,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/src/i18n/routing";
 import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 import RefreshOnFocus from "@/components/RefreshOnFocus";
 
 /**
@@ -55,6 +56,7 @@ export default async function LocaleLayout({
           <RefreshOnFocus />
           <SiteHeader />
           <main className="flex-1 flex flex-col">{children}</main>
+          <SiteFooter />
         </NextIntlClientProvider>
       </body>
     </html>
