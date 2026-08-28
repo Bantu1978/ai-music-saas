@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/src/i18n/navigation";
 import {
@@ -14,6 +14,55 @@ import {
 
 const POLL_INTERVAL_MS = 4000;
 const MAX_ATTEMPTS = 75; // 75 x 4s = 300s
+const LIMITE_ATTENTE_MS = MAX_ATTEMPTS * POLL_INTERVAL_MS;
+
+/**
+ * Génération en cours, mémorisée dans le navigateur.
+ *
+ * Retirer la garde de solde du composant serveur empêche le studio d'être
+ * démonté par un simple retour sur l'onglet, mais pas par un rechargement
+ * complet : F5, une navigation, ou un navigateur mobile qui décharge l'onglet
+ * en arrière-plan — chose courante sur les téléphones d'entrée de gamme, qui
+ * sont l'essentiel du parc visé.
+ *
+ * La tâche continue chez Suno quoi qu'il arrive : seule la boucle qui
+ * l'observe disparaît. Conserver son identifiant permet de la reprendre au
+ * remontage plutôt que de laisser le client devant un formulaire vide, son
+ * crédit déjà débité.
+ */
+const CLE_REPRISE = "bakumelo:generation-en-cours";
+
+/** Au-delà, la tâche a de toute façon dépassé le plafond d'attente. */
+const REPRISE_MAX_MS = 10 * 60 * 1000;
+
+type Reprise = { taskId: string; songId: string; debut: number };
+
+function lireReprise(): Reprise | null {
+  try {
+    const brut = localStorage.getItem(CLE_REPRISE);
+    if (!brut) return null;
+    const r = JSON.parse(brut) as Reprise;
+    if (!r?.taskId || !r?.songId) return null;
+    if (Date.now() - r.debut > REPRISE_MAX_MS) {
+      localStorage.removeItem(CLE_REPRISE);
+      return null;
+    }
+    return r;
+  } catch {
+    // Navigation privée, stockage désactivé, JSON corrompu : la reprise est un
+    // confort, jamais une condition de fonctionnement.
+    return null;
+  }
+}
+
+function ecrireReprise(r: Reprise | null) {
+  try {
+    if (r) localStorage.setItem(CLE_REPRISE, JSON.stringify(r));
+    else localStorage.removeItem(CLE_REPRISE);
+  } catch {
+    /* voir lireReprise */
+  }
+}
 
 interface SongResult {
   songId: string;
@@ -43,10 +92,19 @@ export default function StudioForm({
   const [error, setError] = useState<string | null>(null);
   const [song, setSong] = useState<SongResult | null>(null);
 
-  const pollStatus = async (taskId: string, songId: string) => {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  /**
+   * Observe la tâche jusqu'à son terme.
+   *
+   * Le plafond se mesure au temps écoulé depuis `debut`, et non à un nombre de
+   * tours : une génération reprise après un rechargement doit hériter du délai
+   * déjà consommé, sinon chaque reprise rouvrirait cinq minutes de patience.
+   * C'est aussi ce qui permet d'afficher une durée juste plutôt qu'un compteur
+   * repartant de zéro.
+   */
+  const pollStatus = async (taskId: string, songId: string, debut: number) => {
+    while (Date.now() - debut < LIMITE_ATTENTE_MS) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      setStatusText(`${t("generating")} (${attempt * (POLL_INTERVAL_MS / 1000)}s)`);
+      setStatusText(`${t("generating")} (${Math.round((Date.now() - debut) / 1000)}s)`);
 
       const res = await fetch(
         `/api/generate/status?taskId=${encodeURIComponent(taskId)}&songId=${encodeURIComponent(songId)}`
@@ -54,17 +112,57 @@ export default function StudioForm({
       const data = await res.json();
 
       if (data.status === "SUCCESS" && data.song?.audioUrl) {
+        ecrireReprise(null);
         setSong({ songId, ...data.song });
         setLoading(false);
         return;
       }
       if (data.status === "FAILED") {
+        ecrireReprise(null);
         throw new Error(data.error || t("genericError"));
       }
     }
 
+    ecrireReprise(null);
     throw new Error(t("timeout"));
   };
+
+  // Reprise après un rechargement complet. Le garde de ref évite qu'un
+  // remontage — en développement, le mode strict monte deux fois — ne lance
+  // deux boucles concurrentes sur la même tâche.
+  const repriseFaite = useRef(false);
+
+  useEffect(() => {
+    if (repriseFaite.current) return;
+    repriseFaite.current = true;
+
+    const r = lireReprise();
+    if (!r) return;
+
+    let annule = false;
+    (async () => {
+      // Le premier setState vient après un await : pas de rendu en cascade au
+      // montage, comme dans la console d'administration.
+      await Promise.resolve();
+      if (annule) return;
+      setLoading(true);
+      setStatusText(t("generating"));
+      try {
+        await pollStatus(r.taskId, r.songId, r.debut);
+      } catch (err) {
+        if (annule) return;
+        setError(err instanceof Error ? err.message : t("genericError"));
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      annule = true;
+    };
+    // Volontairement au montage seul : reprendre une tâche est un événement
+    // ponctuel, pas une synchronisation à rejouer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +190,12 @@ export default function StudioForm({
         setCredits(data.creditsRemaining);
       }
 
-      await pollStatus(data.taskId, data.songId);
+      // Mémorisée avant la première attente : un rechargement survenant dans
+      // la seconde qui suit doit déjà pouvoir la reprendre.
+      const debut = Date.now();
+      ecrireReprise({ taskId: data.taskId, songId: data.songId, debut });
+
+      await pollStatus(data.taskId, data.songId, debut);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("genericError"));
       setLoading(false);
