@@ -25,6 +25,10 @@ export default async function SiteFooter() {
     { href: "/dashboard", libelle: t("dashboard") },
     { href: "/pricing", libelle: t("pricing") },
     { href: "/support", libelle: t("support") },
+    // Les conditions générales vivent au pied de page et nulle part ailleurs :
+    // c'est là qu'on les cherche, et les mettre dans la barre principale
+    // encombrerait la navigation d'un lien qu'on consulte une fois.
+    { href: "/terms", libelle: t("terms") },
   ];
 
   return (

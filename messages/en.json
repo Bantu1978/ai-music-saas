@@ -10,7 +10,8 @@
     "credits": "credits",
     "menuOpen": "Open menu",
     "menuClose": "Close menu",
-    "support": "Support"
+    "support": "Support",
+    "terms": "Terms"
   },
   "Auth": {
     "title": "Sign in to BAKUMELO",
@@ -252,5 +253,13 @@
     "tagline": "Create your Afro and international songs with artificial intelligence.",
     "navLabel": "Footer links",
     "rights": "All rights reserved."
+  },
+  "Terms": {
+    "title": "Terms and conditions",
+    "lastUpdated": "Last updated: {date}",
+    "draftTitle": "Draft document",
+    "draftBody": "The provider identification details are not yet filled in. This text cannot be relied upon as it stands and must be reviewed by a lawyer before being invoked.",
+    "questions": "A question about these terms?",
+    "supportLink": "Write to us from the Support page."
   }
 }
