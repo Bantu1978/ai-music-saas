@@ -11,7 +11,8 @@
     "menuOpen": "Ouvrir le menu",
     "menuClose": "Fermer le menu",
     "support": "Assistance",
-    "terms": "Conditions générales"
+    "terms": "Conditions générales",
+    "privacy": "Confidentialité"
   },
   "Auth": {
     "title": "Connexion à BAKUMELO",
@@ -261,5 +262,12 @@
     "draftBody": "Les mentions d'identification du prestataire ne sont pas encore renseignées. Ce texte ne peut pas être opposé en l'état et doit être relu par un juriste avant d'être invoqué.",
     "questions": "Une question sur ces conditions ?",
     "supportLink": "Écrivez-nous depuis la page Assistance."
+  },
+  "Privacy": {
+    "title": "Politique de confidentialité",
+    "lastUpdated": "Dernière mise à jour : {date}",
+    "intro": "Ce document décrit les données que nous collectons, pourquoi, à qui elles sont transmises et combien de temps elles sont conservées. Il décrit nos pratiques réelles, et sera révisé si celles-ci changent.",
+    "exercise": "Pour exercer vos droits ou poser une question :",
+    "supportLink": "écrivez-nous depuis la page Assistance."
   }
 }
