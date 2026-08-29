@@ -214,7 +214,14 @@ export function signatureVerdict(rawBody: string, signature: string | null): Ver
  */
 export function paiementReelDisponible(): boolean {
   const key = (process.env.NOTCHPAY_PUBLIC_KEY || "").trim();
-  return key.startsWith("pk_live");
+  if (!key) return false;
+  // Notch Pay préfixe ses clés de bac à sable par `pk_test.` et celles de
+  // production par `pk.` — et non `pk_live.`, comme la symétrie le laissait
+  // supposer. La vérification portait sur ce préfixe inventé : une vraie clé de
+  // production était prise pour une clé inconnue, et le bandeau « paiement en
+  // cours d'activation » restait affiché alors que l'encaissement fonctionnait.
+  if (key.startsWith("pk_test")) return false;
+  return key.startsWith("pk.");
 }
 
 export function webhookStrict(): boolean {
