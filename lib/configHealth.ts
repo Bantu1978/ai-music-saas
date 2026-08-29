@@ -149,9 +149,14 @@ export function configHealth(): ConfigEntree[] {
     entree("notchpay", "Encaissement des paiements", ["NOTCHPAY_PUBLIC_KEY"], true, (v) => {
       // Le préfixe de la clé dit si de l'argent réel peut circuler. C'est
       // l'information la plus utile du panneau, et elle ne révèle rien.
+      //
+      // Notch Pay écrit `pk_test.` pour le bac à sable et `pk.` pour la
+      // production. Ce panneau cherchait `pk_live.`, préfixe supposé par
+      // symétrie et qui n'existe pas : une vraie clé de production s'affichait
+      // en « non reconnue ».
       if (v.startsWith("pk_test")) return { note: "clé de test — aucun montant réel" };
-      if (v.startsWith("pk_live")) return { statut: "attention", note: "clé réelle — les paiements sont encaissés" };
-      return { note: "clé non reconnue" };
+      if (v.startsWith("pk.")) return { statut: "attention", note: "clé réelle — les paiements sont encaissés" };
+      return { statut: "attention", note: "préfixe inconnu — vérifier la clé" };
     }),
 
     // Le secret seul ne protège rien : il permet de *calculer* un verdict, mais
