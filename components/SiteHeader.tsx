@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { Link, useRouter, usePathname } from "@/src/i18n/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -20,9 +21,13 @@ export default function SiteHeader() {
   const t = useTranslations("Nav");
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  // Ouvre directement le modal via ?auth=1 dans l'URL : sans route dédiée pour
+  // la connexion, c'est le seul moyen de donner un lien exploitable (preuve
+  // d'opt-in WhatsApp exigée par Twilio/Meta, support client, etc.).
+  const [isAuthOpen, setIsAuthOpen] = useState(() => searchParams.get("auth") === "1");
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [admin, setAdmin] = useState(false);
