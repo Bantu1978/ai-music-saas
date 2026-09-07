@@ -200,7 +200,7 @@ export default function SiteHeader() {
             {user ? (
               <div className="flex items-center gap-3 bg-zinc-900 border-2 border-zinc-800 px-3 py-1.5 rounded-2xl">
                 <span className="text-xs font-bold text-zinc-300 hidden md:inline max-w-[14rem] truncate">
-                  {profile?.full_name || user.email}
+                  {profile?.full_name || user.email || user.phone}
                 </span>
                 <span className="bg-indigo-950 border border-indigo-500/40 text-indigo-300 text-xs font-black px-3 py-1 rounded-full whitespace-nowrap">
                   🎵 {profile?.credits ?? 0} {t("credits")}

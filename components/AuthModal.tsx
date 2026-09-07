@@ -11,9 +11,11 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-type Mode = "signin" | "signup" | "reset";
+type Step = "phone" | "code";
 
-const MIN_PASSWORD_LENGTH = 8;
+const OTP_LENGTH = 6;
+// E.164 : « + » suivi de 8 à 15 chiffres, indicatif pays compris.
+const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const t = useTranslations("Auth");
@@ -21,10 +23,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [mode, setMode] = useState<Mode>("signin");
+  const [step, setStep] = useState<Step>("phone");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -49,8 +51,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     router.refresh();
   };
 
-  const switchMode = (next: Mode) => {
-    setMode(next);
+  const resetFeedback = () => {
     setError(null);
     setNotice(null);
   };
@@ -70,27 +71,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     });
   };
 
-  const handleResetRequest = async (e: React.FormEvent) => {
+  /**
+   * Envoie le code WhatsApp. Sert aussi bien à la première inscription qu'à
+   * une reconnexion : Supabase crée le compte s'il n'existe pas encore et
+   * renvoie un simple code sinon — un seul flux, pas de bascule
+   * inscription/connexion à faire deviner à l'utilisateur.
+   */
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setNotice(null);
+    resetFeedback();
 
-    if (!email.trim()) {
-      setError(t("emailRequired"));
+    const numero = phone.trim();
+    if (!PHONE_PATTERN.test(numero)) {
+      setError(t("phoneInvalid"));
       return;
     }
 
     setPending(true);
     try {
-      const returnTo = `/${locale}/auth/update-password`;
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone: numero,
+        options: {
+          channel: "whatsapp",
+          data: { full_name: fullName.trim() || null },
+        },
       });
-      if (resetError) throw resetError;
+      if (otpError) throw otpError;
 
-      // Message volontairement identique que l'adresse existe ou non : ne pas
-      // transformer ce formulaire en oracle d'existence de compte.
-      setNotice(t("resetSent"));
+      setPhone(numero);
+      setStep("code");
+      setNotice(t("codeSentNotice", { phone: numero }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -98,51 +108,49 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setNotice(null);
+    resetFeedback();
 
-    if (!email.trim() || !password) {
-      setError(t("emailRequired"));
-      return;
-    }
-    if (mode === "signup" && password.length < MIN_PASSWORD_LENGTH) {
-      setError(t("passwordTooShort"));
+    if (code.trim().length < OTP_LENGTH) {
+      setError(t("codeRequired"));
       return;
     }
 
     setPending(true);
     try {
-      if (mode === "signin") {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (signInError) throw signInError;
-        // Le profil est garanti côté serveur à l'entrée du studio.
-        entrerDansLeStudio();
-        return;
-      }
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: { full_name: fullName.trim() || null },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-        },
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        phone,
+        token: code.trim(),
+        type: "sms",
       });
-      if (signUpError) throw signUpError;
+      if (verifyError) throw verifyError;
 
-      // Sans session, le projet Supabase exige une confirmation par email.
-      if (!data.session) {
-        setNotice(t("confirmSent"));
-        setPassword("");
-        return;
-      }
-
+      // Le profil est garanti côté serveur à l'entrée du studio.
       entrerDansLeStudio();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleChangeNumber = () => {
+    setStep("phone");
+    setCode("");
+    resetFeedback();
+  };
+
+  const handleResend = async () => {
+    resetFeedback();
+    setPending(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        phone,
+        options: { channel: "whatsapp" },
+      });
+      if (otpError) throw otpError;
+      setNotice(t("codeSentNotice", { phone }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -152,10 +160,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const inputClass =
     "w-full bg-zinc-950 border-2 border-zinc-700 focus:border-indigo-500 rounded-xl p-3 text-sm text-white placeholder-zinc-500 outline-none transition";
-  const tabClass = (active: boolean) =>
-    `flex-1 py-2 text-xs font-bold rounded-lg transition ${
-      active ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"
-    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
@@ -169,22 +173,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </button>
 
         <h2 className="text-2xl font-extrabold text-white text-center mb-2">
-          {mode === "reset" ? t("resetTitle") : t("title")}
+          {step === "code" ? t("codeTitle") : t("title")}
         </h2>
         <p className="text-zinc-400 text-xs text-center mb-6">
-          {mode === "reset" ? t("resetSubtitle") : t("subtitle", { count: SIGNUP_CREDITS })}
+          {step === "code" ? t("codeSubtitle") : t("subtitle", { count: SIGNUP_CREDITS })}
         </p>
-
-        {mode !== "reset" && (
-        <div className="flex gap-1 p-1 bg-zinc-950 border border-zinc-800 rounded-xl mb-6">
-          <button type="button" onClick={() => switchMode("signin")} className={tabClass(mode === "signin")}>
-            {t("tabSignIn")}
-          </button>
-          <button type="button" onClick={() => switchMode("signup")} className={tabClass(mode === "signup")}>
-            {t("tabSignUp")}
-          </button>
-        </div>
-        )}
 
         {error && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
@@ -193,17 +186,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
         {notice && (
           <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-            <p>{notice}</p>
-            {/* Les deux notices possibles annoncent l'envoi d'un email. Tant que le
-                SMTP personnalisé BAKUMELO n'est pas en place, l'expéditeur reste
-                Supabase : on prévient pour éviter que le message soit ignoré ou
-                pris pour du spam. À retirer une fois le SMTP configuré. */}
-            <p className="mt-2 text-emerald-300/70 leading-relaxed">{t("senderNotice")}</p>
+            {notice}
           </div>
         )}
 
-        <form onSubmit={mode === "reset" ? handleResetRequest : handleEmailSubmit} className="space-y-3 mb-5">
-          {mode === "signup" && (
+        {step === "phone" ? (
+          <form onSubmit={handleSendCode} className="space-y-3 mb-5">
             <div>
               <label htmlFor="auth-name" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t("fullName")}
@@ -218,127 +206,120 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 className={inputClass}
               />
             </div>
-          )}
 
-          <div>
-            <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-              {t("email")}
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("emailPlaceholder")}
-              className={inputClass}
-            />
-          </div>
+            <div>
+              <label htmlFor="auth-phone" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                {t("phone")}
+              </label>
+              <input
+                id="auth-phone"
+                type="tel"
+                required
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t("phonePlaceholder")}
+                className={inputClass}
+              />
+            </div>
 
-          {mode !== "reset" && (
-          <div>
-            <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-              {t("password")}
-            </label>
-            <input
-              id="auth-password"
-              type="password"
-              required
-              minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t("passwordPlaceholder")}
-              className={inputClass}
-            />
-          </div>
-          )}
+            {/* Preuve d'opt-in exigée par Meta/Twilio pour l'envoi de messages
+                WhatsApp : le consentement doit être explicite et visible avant
+                le premier message, pas seulement sous-entendu par le bouton. */}
+            <p className="text-[11px] leading-relaxed text-zinc-500">{t("optInNotice")}</p>
 
-          {mode === "signin" && (
-            <div className="text-right">
+            <button
+              type="submit"
+              disabled={pending}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
+            >
+              {pending ? t("pending") : t("sendCode")}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyCode} className="space-y-3 mb-5">
+            <div>
+              <label htmlFor="auth-code" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                {t("code")}
+              </label>
+              <input
+                id="auth-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={OTP_LENGTH}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                placeholder={t("codePlaceholder")}
+                className={`${inputClass} text-center text-lg tracking-[0.5em]`}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={pending}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
+            >
+              {pending ? t("pending") : t("confirmCode")}
+            </button>
+
+            <div className="flex items-center justify-between text-xs">
               <button
                 type="button"
-                onClick={() => switchMode("reset")}
-                className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2"
+                onClick={handleChangeNumber}
+                className="text-zinc-400 hover:text-white font-semibold"
               >
-                {t("forgotPassword")}
+                ← {t("changeNumber")}
+              </button>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={pending}
+                className="text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 disabled:opacity-50"
+              >
+                {t("resendCode")}
               </button>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
-          >
-            {pending
-              ? t("pending")
-              : mode === "reset"
-                ? t("resetSubmit")
-                : mode === "signin"
-                  ? t("submitSignIn")
-                  : t("submitSignUp")}
-          </button>
-        </form>
-
-        {mode === "reset" ? (
-          <button
-            type="button"
-            onClick={() => switchMode("signin")}
-            className="w-full text-center text-xs text-zinc-400 hover:text-white font-semibold"
-          >
-            ← {t("backToSignIn")}
-          </button>
-        ) : (
-          <>
-          <div className="flex items-center gap-3 mb-5">
-            <span className="h-px flex-1 bg-zinc-800" />
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">
-              {t("separator")}
-            </span>
-            <span className="h-px flex-1 bg-zinc-800" />
-          </div>
-
-          <button
-            onClick={handleGoogleLogin}
-            disabled={pending}
-            className="w-full py-3.5 px-4 bg-white hover:bg-zinc-100 disabled:opacity-50 text-zinc-900 font-bold rounded-xl flex items-center justify-center gap-3 transition shadow-lg"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.91H1.33v3.13C3.33 21.31 7.4 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.32 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.6H1.33C.48 8.29 0 10.09 0 12s.48 3.71 1.33 5.4l3.99-3.13z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.4 0 3.33 2.69 1.33 6.6l3.99 3.13c.94-2.82 3.58-4.98 6.68-4.98z"
-              />
-            </svg>
-            {t("google")}
-          </button>
-
-          <p className="mt-5 text-center text-xs text-zinc-500">
-            {mode === "signin" ? t("noAccount") : t("hasAccount")}{" "}
-            <button
-              type="button"
-              onClick={() => switchMode(mode === "signin" ? "signup" : "signin")}
-              className="text-indigo-400 hover:text-indigo-300 font-bold underline underline-offset-2"
-            >
-              {mode === "signin" ? t("tabSignUp") : t("tabSignIn")}
-            </button>
-          </p>
-          </>
+          </form>
         )}
 
+        {step === "phone" && (
+          <>
+            <div className="flex items-center gap-3 mb-5">
+              <span className="h-px flex-1 bg-zinc-800" />
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">
+                {t("separator")}
+              </span>
+              <span className="h-px flex-1 bg-zinc-800" />
+            </div>
+
+            <button
+              onClick={handleGoogleLogin}
+              disabled={pending}
+              className="w-full py-3.5 px-4 bg-white hover:bg-zinc-100 disabled:opacity-50 text-zinc-900 font-bold rounded-xl flex items-center justify-center gap-3 transition shadow-lg"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.91H1.33v3.13C3.33 21.31 7.4 24 12 24z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.32 14.27c-.24-.72-.38-1.49-.38-2.27s.14-1.55.38-2.27V6.6H1.33C.48 8.29 0 10.09 0 12s.48 3.71 1.33 5.4l3.99-3.13z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.4 0 3.33 2.69 1.33 6.6l3.99 3.13c.94-2.82 3.58-4.98 6.68-4.98z"
+                />
+              </svg>
+              {t("google")}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
