@@ -72,10 +72,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   /**
-   * Envoie le code WhatsApp. Sert aussi bien à la première inscription qu'à
-   * une reconnexion : Supabase crée le compte s'il n'existe pas encore et
-   * renvoie un simple code sinon — un seul flux, pas de bascule
-   * inscription/connexion à faire deviner à l'utilisateur.
+   * Envoie le code par SMS (API Orange Cameroun). Sert aussi bien à la
+   * première inscription qu'à une reconnexion : /api/auth/otp/verify crée le
+   * compte s'il n'existe pas encore et fait tourner son mot de passe sinon —
+   * un seul flux, pas de bascule inscription/connexion à faire deviner à
+   * l'utilisateur.
    */
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,14 +90,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: numero,
-        options: {
-          channel: "whatsapp",
-          data: { full_name: fullName.trim() || null },
-        },
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: numero }),
       });
-      if (otpError) throw otpError;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
 
       setPhone(numero);
       setStep("code");
@@ -119,12 +119,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        phone,
-        token: code.trim(),
-        type: "sms",
+      const res = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, code: code.trim(), fullName: fullName.trim() || null }),
       });
-      if (verifyError) throw verifyError;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("codeError"));
 
       // Le profil est garanti côté serveur à l'entrée du studio.
       entrerDansLeStudio();
@@ -145,11 +146,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     resetFeedback();
     setPending(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone,
-        options: { channel: "whatsapp" },
+      const res = await fetch("/api/auth/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
       });
-      if (otpError) throw otpError;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
       setNotice(t("codeSentNotice", { phone }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -223,9 +226,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               />
             </div>
 
-            {/* Preuve d'opt-in exigée par Meta/Twilio pour l'envoi de messages
-                WhatsApp : le consentement doit être explicite et visible avant
-                le premier message, pas seulement sous-entendu par le bouton. */}
             <p className="text-[11px] leading-relaxed text-zinc-500">{t("optInNotice")}</p>
 
             <button
