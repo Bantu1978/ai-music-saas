@@ -10,9 +10,9 @@
  * sur la page tarifs sont indicatives : Notch Pay encaisse en XAF.
  */
 export const PACKS = [
-  { id: "discovery", credits: 3, priceXaf: 2990, labelKey: "packDiscovery", popular: false },
-  { id: "creator", credits: 10, priceXaf: 8900, labelKey: "packCreator", popular: true },
-  { id: "pro", credits: 25, priceXaf: 19900, labelKey: "packPro", popular: false },
+  { id: "discovery", credits: 3, priceXaf: 990, labelKey: "packDiscovery", popular: false },
+  { id: "creator", credits: 10, priceXaf: 2950, labelKey: "packCreator", popular: true },
+  { id: "pro", credits: 25, priceXaf: 6590, labelKey: "packPro", popular: false },
 ] as const;
 
 export type Pack = (typeof PACKS)[number];
