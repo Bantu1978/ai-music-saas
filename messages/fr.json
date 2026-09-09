@@ -32,6 +32,7 @@
     "codeTitle": "Entrez le code reçu",
     "codeSubtitle": "Un code de vérification vient de vous être envoyé par SMS.",
     "codeSentNotice": "Code envoyé par SMS au {phone}.",
+    "devCodeNotice": "(Mode développement, SMS non livré réellement : code = {code})",
     "code": "Code de vérification",
     "codePlaceholder": "123456",
     "codeRequired": "Entrez le code à 6 chiffres reçu par SMS.",

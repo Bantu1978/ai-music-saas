@@ -54,12 +54,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
   }
 
+  const isDev = process.env.NODE_ENV !== "production";
+
   try {
     await sendOrangeSms(phone, `Votre code de vérification BAKUMELO est ${code}. Il expire dans 5 minutes.`);
   } catch (err) {
     console.error("otp/send: envoi Orange SMS échoué", err);
-    return NextResponse.json({ error: "Échec de l'envoi du SMS. Réessayez." }, { status: 502 });
+    // En développement, la sandbox Orange n'envoie jamais réellement de SMS :
+    // on renvoie quand même le code (voir devCode ci-dessous) pour pouvoir
+    // tester le reste du parcours sans attendre l'activation production.
+    if (!isDev) {
+      return NextResponse.json({ error: "Échec de l'envoi du SMS. Réessayez." }, { status: 502 });
+    }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, ...(isDev ? { devCode: code } : {}) });
 }

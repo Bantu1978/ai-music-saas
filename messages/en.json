@@ -32,6 +32,7 @@
     "codeTitle": "Enter the code",
     "codeSubtitle": "A verification code was just sent to you by SMS.",
     "codeSentNotice": "Code sent via SMS to {phone}.",
+    "devCodeNotice": "(Dev mode, no real SMS delivered: code = {code})",
     "code": "Verification code",
     "codePlaceholder": "123456",
     "codeRequired": "Enter the 6-digit code you received by SMS.",

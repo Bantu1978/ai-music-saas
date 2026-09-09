@@ -57,10 +57,15 @@ export async function POST(request: Request) {
   // échanger ce numéro vérifié contre une vraie session Supabase juste après.
   const oneTimePassword = generateOneTimePassword();
 
+  // auth.users (et donc profiles.phone, rempli par le déclencheur) stocke le
+  // numéro sans le préfixe « + » — Supabase le normalise ainsi en interne,
+  // même si signInWithPassword et admin.createUser acceptent les deux formes.
+  const normalizedPhone = phone.replace(/^\+/, "");
+
   const { data: existingProfile, error: profileError } = await admin
     .from("profiles")
     .select("id")
-    .eq("phone", phone)
+    .eq("phone", normalizedPhone)
     .maybeSingle();
 
   if (profileError) {
@@ -111,5 +116,15 @@ export async function POST(request: Request) {
     refresh_token: session.session.refresh_token,
   });
 
-  return NextResponse.json({ ok: true });
+  // Les tokens repartent aussi dans le corps de la réponse : le client doit
+  // les rejouer dans SON propre client Supabase (setSession), sinon son SDK
+  // ignore la nouvelle session tant que la page n'est pas rechargée en dur —
+  // les cookies posés ci-dessus ne suffisent qu'aux rendus serveur suivants.
+  return NextResponse.json({
+    ok: true,
+    session: {
+      access_token: session.session.access_token,
+      refresh_token: session.session.refresh_token,
+    },
+  });
 }

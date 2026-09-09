@@ -56,6 +56,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setNotice(null);
   };
 
+  /**
+   * En développement, /api/auth/otp/send renvoie aussi le code en clair
+   * (sandbox Orange = aucun SMS réellement livré) pour pouvoir tester le
+   * parcours sans attendre l'activation production. Absent en prod.
+   */
+  const buildSentNotice = (numero: string, devCode?: unknown) => {
+    const base = t("codeSentNotice", { phone: numero });
+    return typeof devCode === "string" ? `${base} ${t("devCodeNotice", { code: devCode })}` : base;
+  };
+
   const handleGoogleLogin = async () => {
     setPending(true);
     // Conserve la langue courante au retour de l'OAuth Google
@@ -100,7 +110,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
       setPhone(numero);
       setStep("code");
-      setNotice(t("codeSentNotice", { phone: numero }));
+      setNotice(buildSentNotice(numero, data.devCode));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -126,6 +136,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("codeError"));
+
+      // La route a posé les cookies pour les rendus serveur suivants, mais le
+      // SDK du navigateur (utilisé par SiteHeader) ignore cette session tant
+      // qu'on ne la lui rejoue pas explicitement ici.
+      if (data.session?.access_token && data.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
 
       // Le profil est garanti côté serveur à l'entrée du studio.
       entrerDansLeStudio();
@@ -153,7 +173,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("sendCodeError"));
-      setNotice(t("codeSentNotice", { phone }));
+      setNotice(buildSentNotice(phone, data.devCode));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

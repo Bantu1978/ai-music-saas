@@ -65,8 +65,10 @@ export async function sendOrangeSms(phone: string, message: string): Promise<voi
     }),
   });
 
+  const body = await res.text().catch(() => "");
+  console.log(`[orangeSms] statut=${res.status} senderAddress=${senderAddress} corps=${body}`);
+
   if (!res.ok) {
-    const body = await res.text().catch(() => "");
     throw new Error(`Orange SMS a échoué (${res.status}) : ${body}`);
   }
 }
