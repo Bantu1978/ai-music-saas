@@ -7,8 +7,12 @@ type Profile = {
   id: string;
   email: string | null;
   full_name: string | null;
+  phone: string | null;
   credits: number;
 };
+
+/** Supabase stocke le téléphone sans « + » : on le réaffiche au format E.164. */
+const formatPhone = (phone: string | null) => (phone ? `+${phone}` : null);
 
 type Song = {
   id: string;
@@ -300,7 +304,52 @@ export default function AdminConsole() {
         <p className="text-zinc-400">{t("loading")}</p>
       ) : (
         <div className="space-y-10">
-          <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
+          <nav className="flex flex-wrap gap-2 text-xs font-bold sticky top-0 z-10 bg-black/80 backdrop-blur py-3 -mx-4 px-4 sm:-mx-8 sm:px-8">
+            <a
+              href="#admin-users"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition"
+            >
+              {t("usersSection")} ({total})
+            </a>
+            {pendingPayments.length > 0 && (
+              <a
+                href="#admin-payments"
+                className="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 transition"
+              >
+                {t("pendingPaymentsSection")} ({pendingPayments.length})
+              </a>
+            )}
+            {stuckSongs.length > 0 && (
+              <a
+                href="#admin-stuck"
+                className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 transition"
+              >
+                {t("stuckSection")} ({stuckSongs.length})
+              </a>
+            )}
+            <a
+              href="#admin-transactions"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition"
+            >
+              {t("transactionsSection")}
+            </a>
+            <a
+              href="#admin-songs"
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition"
+            >
+              {t("songsSection")}
+            </a>
+            {config.length > 0 && (
+              <a
+                href="#admin-config"
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition"
+              >
+                {t("configSection")}
+              </a>
+            )}
+          </nav>
+
+          <section id="admin-users" className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold text-indigo-400">{t("usersSection")}</h2>
               <p className="text-xs text-zinc-500">{t("totalUsers", { count: total })}</p>
@@ -335,7 +384,14 @@ export default function AdminConsole() {
                 <tbody className="divide-y divide-zinc-800">
                   {profiles.map((p) => (
                     <tr key={p.id}>
-                      <td className="py-3 px-2">{p.email || p.full_name || p.id.slice(0, 8)}</td>
+                      <td className="py-3 px-2">
+                        <div className="font-semibold text-white">
+                          {p.full_name || t("noName")}
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {p.email || formatPhone(p.phone) || p.id.slice(0, 8)}
+                        </div>
+                      </td>
                       <td className="py-3 px-2 font-bold text-indigo-300">{p.credits}</td>
                       <td className="py-3 px-2">
                         <button
@@ -381,6 +437,7 @@ export default function AdminConsole() {
             const problemes = config.filter((c) => c.statut !== "ok");
             return (
               <section
+                id="admin-config"
                 className={`bg-zinc-900 border-2 rounded-2xl p-6 ${
                   problemes.some((c) => c.statut === "manquant")
                     ? "border-red-500/40"
@@ -449,7 +506,7 @@ export default function AdminConsole() {
           })()}
 
           {pendingPayments.length > 0 && (
-            <section className="bg-zinc-900 border-2 border-sky-500/40 rounded-2xl p-6">
+            <section id="admin-payments" className="bg-zinc-900 border-2 border-sky-500/40 rounded-2xl p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
                 <h2 className="text-xl font-bold text-sky-400">{t("pendingPaymentsSection")}</h2>
                 <p className="text-xs text-zinc-500">
@@ -490,7 +547,7 @@ export default function AdminConsole() {
           )}
 
           {stuckSongs.length > 0 && (
-            <section className="bg-zinc-900 border-2 border-amber-500/40 rounded-2xl p-6">
+            <section id="admin-stuck" className="bg-zinc-900 border-2 border-amber-500/40 rounded-2xl p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
                 <h2 className="text-xl font-bold text-amber-400">{t("stuckSection")}</h2>
                 <p className="text-xs text-zinc-500">
@@ -540,7 +597,7 @@ export default function AdminConsole() {
             </section>
           )}
 
-          <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
+          <section id="admin-transactions" className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
               <h2 className="text-xl font-bold text-emerald-400">{t("transactionsSection")}</h2>
               <p className="text-xs text-zinc-500">{t("transactionsHint")}</p>
@@ -582,7 +639,7 @@ export default function AdminConsole() {
             )}
           </section>
 
-          <section className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
+          <section id="admin-songs" className="bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-6">
             <h2 className="text-xl font-bold mb-4 text-purple-400">{t("songsSection")}</h2>
             <div className="space-y-3">
               {songs.map((song) => (

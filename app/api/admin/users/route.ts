@@ -32,7 +32,18 @@ type TransactionRow = {
   profiles: ProfileRef | ProfileRef[] | null;
 };
 
-type ProfileRef = { email: string | null; full_name: string | null };
+type ProfileRef = { email: string | null; full_name: string | null; phone: string | null };
+
+/** Supabase stocke le téléphone sans « + » : on le réaffiche au format E.164. */
+function formatPhone(phone: string | null): string | null {
+  return phone ? `+${phone}` : null;
+}
+
+/** Meilleur identifiant lisible disponible pour un profil, dans cet ordre. */
+function userLabel(profile: ProfileRef | null): string | null {
+  if (!profile) return null;
+  return profile.full_name || profile.email || formatPhone(profile.phone) || null;
+}
 
 /**
  * Paiement ouvert et jamais dénoué.
@@ -84,13 +95,15 @@ function firstProfile(profiles: TransactionRow["profiles"]): ProfileRef | null {
  * une faille. Renvoie `null` s'il ne reste rien de cherchable.
  */
 function searchPattern(term: string): string | null {
-  const cleaned = term.replace(/[%_*,()"\\]/g, " ").trim();
+  // « + » retiré aussi : profiles.phone est stocké sans lui (voir formatPhone
+  // plus haut), donc une recherche « +237... » doit pouvoir le retrouver.
+  const cleaned = term.replace(/[%_*,()"\\+]/g, " ").trim();
   return cleaned ? `%${cleaned}%` : null;
 }
 
 /** Filtre commun au comptage et à la page de données : une seule formulation. */
 function orFilter(pattern: string): string {
-  return `email.ilike.${pattern},full_name.ilike.${pattern}`;
+  return `email.ilike.${pattern},full_name.ilike.${pattern},phone.ilike.${pattern}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -133,14 +146,14 @@ export async function GET(req: NextRequest) {
       .limit(10),
     admin
       .from("credit_transactions")
-      .select("id, amount, description, created_at, profiles(email, full_name)")
+      .select("id, amount, description, created_at, profiles(email, full_name, phone)")
       .order("created_at", { ascending: false })
       .limit(TRANSACTIONS_LIMIT),
     // Générations jamais réconciliées : l'onglet du client s'est fermé avant la
     // fin, le crédit est débité et le morceau n'a jamais été rattaché.
     admin
       .from("songs")
-      .select("id, title, genre, task_id, created_at, profiles(email, full_name)")
+      .select("id, title, genre, task_id, created_at, profiles(email, full_name, phone)")
       .eq("status", SONG_STATUS.pending)
       .order("created_at", { ascending: false })
       .limit(STUCK_LIMIT),
@@ -176,7 +189,7 @@ export async function GET(req: NextRequest) {
 
   let profilesQuery = admin
     .from("profiles")
-    .select("id, email, full_name, credits, created_at")
+    .select("id, email, full_name, phone, credits, created_at")
     .order("created_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
   if (pattern) profilesQuery = profilesQuery.or(orFilter(pattern));
@@ -190,18 +203,16 @@ export async function GET(req: NextRequest) {
   // Aplatissement du profil joint : le client reçoit un libellé prêt à afficher
   // plutôt qu'une relation dont il devrait connaître la forme.
   const transactions = ((rawTransactions ?? []) as TransactionRow[]).map((row) => {
-    const profile = firstProfile(row.profiles);
     return {
       id: row.id,
       amount: row.amount,
       description: row.description,
       createdAt: row.created_at,
-      user: profile?.email || profile?.full_name || null,
+      user: userLabel(firstProfile(row.profiles)),
     };
   });
 
   const stuckSongs = ((rawStuck ?? []) as StuckRow[]).map((row) => {
-    const profile = firstProfile(row.profiles);
     return {
       id: row.id,
       title: row.title,
@@ -210,7 +221,7 @@ export async function GET(req: NextRequest) {
       // La référence de tâche n'est pas exposée telle quelle : seule compte,
       // côté console, l'existence d'un recours auprès de Suno.
       recoverable: Boolean(row.task_id),
-      user: profile?.email || profile?.full_name || null,
+      user: userLabel(firstProfile(row.profiles)),
     };
   });
 
@@ -222,7 +233,7 @@ export async function GET(req: NextRequest) {
   if (pendingRows.length > 0) {
     const { data: comptes } = await admin
       .from("profiles")
-      .select("id, email, full_name")
+      .select("id, email, full_name, phone")
       .in("id", [...new Set(pendingRows.map((r) => r.user_id))]);
 
     for (const c of (comptes ?? []) as (ProfileRef & { id: string })[]) {
@@ -231,7 +242,6 @@ export async function GET(req: NextRequest) {
   }
 
   const pendingPayments = pendingRows.map((row) => {
-    const profile = acheteurs.get(row.user_id) ?? null;
     return {
       reference: row.reference,
       pack: row.pack,
@@ -242,7 +252,7 @@ export async function GET(req: NextRequest) {
       // Sans référence fournisseur, l'ouverture n'a jamais abouti : il n'y a
       // rien à vérifier chez Notch Pay.
       checkable: Boolean(row.provider_reference),
-      user: profile?.email || profile?.full_name || null,
+      user: userLabel(acheteurs.get(row.user_id) ?? null),
     };
   });
 
