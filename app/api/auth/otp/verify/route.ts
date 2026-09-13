@@ -3,12 +3,20 @@ import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/supabaseEnv";
-import { generateOneTimePassword, hashOtpCode, OTP_LENGTH, OTP_MAX_ATTEMPTS } from "@/lib/otp";
+import { checkVerification } from "@/lib/esmsVerify";
+import { generateOneTimePassword } from "@/lib/otp";
 
 const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 
+const STATUS_MESSAGES: Record<string, string> = {
+  pending: "Code incorrect.",
+  failed: "Trop de tentatives, redemandez un code.",
+  expired: "Code expiré, redemandez-en un.",
+  canceled: "Vérification annulée, redemandez un code.",
+};
+
 export async function POST(request: Request) {
-  let body: { phone?: unknown; code?: unknown; fullName?: unknown };
+  let body: { phone?: unknown; code?: unknown; fullName?: unknown; verificationId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -17,41 +25,28 @@ export async function POST(request: Request) {
 
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const code = typeof body.code === "string" ? body.code.trim() : "";
+  const verificationId = typeof body.verificationId === "string" ? body.verificationId : "";
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() || null : null;
 
-  if (!PHONE_PATTERN.test(phone) || code.length !== OTP_LENGTH) {
+  if (!PHONE_PATTERN.test(phone) || !verificationId || code.length < 4) {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
   }
 
-  const admin = getSupabaseAdmin();
+  const verifyResult = await checkVerification(verificationId, code);
 
-  const { data: row, error: rowError } = await admin
-    .from("otp_codes")
-    .select("id, code_hash, expires_at, attempts, consumed_at")
-    .eq("phone", phone)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (rowError) {
-    console.error("otp/verify: lecture du code impossible", rowError);
+  if (!verifyResult.ok) {
+    console.error("otp/verify: eSMS Verify check échoué", verifyResult);
     return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
   }
 
-  if (!row || row.consumed_at || new Date(row.expires_at).getTime() < Date.now()) {
-    return NextResponse.json({ error: "Code expiré, redemandez-en un." }, { status: 400 });
+  if (verifyResult.status !== "approved") {
+    return NextResponse.json(
+      { error: STATUS_MESSAGES[verifyResult.status] ?? "Code invalide." },
+      { status: 400 }
+    );
   }
 
-  if (row.attempts >= OTP_MAX_ATTEMPTS) {
-    return NextResponse.json({ error: "Trop de tentatives, redemandez un code." }, { status: 429 });
-  }
-
-  if (hashOtpCode(code, phone) !== row.code_hash) {
-    await admin.from("otp_codes").update({ attempts: row.attempts + 1 }).eq("id", row.id);
-    return NextResponse.json({ error: "Code incorrect." }, { status: 400 });
-  }
-
-  await admin.from("otp_codes").update({ consumed_at: new Date().toISOString() }).eq("id", row.id);
+  const admin = getSupabaseAdmin();
 
   // Mot de passe à usage unique, connu du seul serveur : il ne sert qu'à
   // échanger ce numéro vérifié contre une vraie session Supabase juste après.

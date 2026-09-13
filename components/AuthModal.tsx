@@ -27,6 +27,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  const [verificationId, setVerificationId] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -57,9 +58,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   /**
-   * En développement, /api/auth/otp/send renvoie aussi le code en clair
-   * (sandbox Orange = aucun SMS réellement livré) pour pouvoir tester le
-   * parcours sans attendre l'activation production. Absent en prod.
+   * Avec une clé esms_test_, /api/auth/otp/send renvoie aussi le code en
+   * clair (sandbox = aucun SMS réellement livré) pour pouvoir tester le
+   * parcours sans consommer de crédit SMS. Absent avec la clé esms_live_.
    */
   const buildSentNotice = (numero: string, devCode?: unknown) => {
     const base = t("codeSentNotice", { phone: numero });
@@ -82,10 +83,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   /**
-   * Envoie le code par SMS (API Orange Cameroun). Sert aussi bien à la
-   * première inscription qu'à une reconnexion : /api/auth/otp/verify crée le
-   * compte s'il n'existe pas encore et fait tourner son mot de passe sinon —
-   * un seul flux, pas de bascule inscription/connexion à faire deviner à
+   * Envoie le code par SMS (API eSMS Verify). Sert aussi bien à la première
+   * inscription qu'à une reconnexion : /api/auth/otp/verify crée le compte
+   * s'il n'existe pas encore et fait tourner son mot de passe sinon — un
+   * seul flux, pas de bascule inscription/connexion à faire deviner à
    * l'utilisateur.
    */
   const handleSendCode = async (e: React.FormEvent) => {
@@ -109,6 +110,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (!res.ok) throw new Error(data.error || t("sendCodeError"));
 
       setPhone(numero);
+      setVerificationId(data.verificationId ?? "");
       setStep("code");
       setNotice(buildSentNotice(numero, data.devCode));
     } catch (err) {
@@ -132,7 +134,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code: code.trim(), fullName: fullName.trim() || null }),
+        body: JSON.stringify({
+          phone,
+          code: code.trim(),
+          fullName: fullName.trim() || null,
+          verificationId,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("codeError"));
@@ -173,6 +180,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("sendCodeError"));
+      setVerificationId(data.verificationId ?? "");
       setNotice(buildSentNotice(phone, data.devCode));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
