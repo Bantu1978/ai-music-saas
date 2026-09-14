@@ -15,8 +15,13 @@ type View = "login" | "signupForm" | "signupCode" | "resetPhone" | "resetCode";
 
 const OTP_LENGTH = 6;
 const MIN_PASSWORD_LENGTH = 8;
-// E.164 : « + » suivi de 8 à 15 chiffres, indicatif pays compris.
-const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+// E.164 sans le « + » : indicatif pays suivi du numéro. Format canonique
+// unique — Supabase et nos routes API l'acceptent tel quel, sans "+" à
+// rajouter ni à retirer nulle part.
+const PHONE_PATTERN = /^[1-9]\d{7,14}$/;
+
+/** Tolère un « + » que l'utilisateur aurait quand même tapé (habitude, copier-coller). */
+const cleanPhoneInput = (raw: string) => raw.trim().replace(/^\+/, "");
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const t = useTranslations("Auth");
@@ -97,8 +102,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     resetFeedback();
 
-    const numero = phone.trim();
-    if (!PHONE_PATTERN.test(numero)) {
+    const saisie = cleanPhoneInput(phone);
+    if (!PHONE_PATTERN.test(saisie)) {
       setError(t("phoneInvalid"));
       return;
     }
@@ -106,7 +111,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setPending(true);
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        phone: numero,
+        phone: saisie,
         password,
       });
       if (signInError) throw new Error(t("loginError"));
@@ -124,8 +129,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     resetFeedback();
 
-    const numero = phone.trim();
-    if (!PHONE_PATTERN.test(numero)) {
+    const saisie = cleanPhoneInput(phone);
+    if (!PHONE_PATTERN.test(saisie)) {
       setError(t("phoneInvalid"));
       return;
     }
@@ -143,15 +148,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const res = await fetch("/api/auth/signup/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: numero, password }),
+        body: JSON.stringify({ phone: saisie, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("sendCodeError"));
 
-      setPhone(numero);
+      setPhone(saisie);
       setVerificationId(data.verificationId ?? "");
       setView("signupCode");
-      setNotice(buildSentNotice(numero, data.devCode));
+      setNotice(buildSentNotice(saisie, data.devCode));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -221,8 +226,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     resetFeedback();
 
-    const numero = phone.trim();
-    if (!PHONE_PATTERN.test(numero)) {
+    const saisie = cleanPhoneInput(phone);
+    if (!PHONE_PATTERN.test(saisie)) {
       setError(t("phoneInvalid"));
       return;
     }
@@ -232,15 +237,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const res = await fetch("/api/auth/password-reset/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: numero }),
+        body: JSON.stringify({ phone: saisie }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || t("sendCodeError"));
 
-      setPhone(numero);
+      setPhone(saisie);
       setVerificationId(data.verificationId ?? "");
       setView("resetCode");
-      setNotice(buildSentNotice(numero, data.devCode));
+      setNotice(buildSentNotice(saisie, data.devCode));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

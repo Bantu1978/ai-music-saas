@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { checkVerification } from "@/lib/esmsVerify";
 
-const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+// Même format canonique sans « + » que password-reset/send.
+const PHONE_PATTERN = /^[1-9]\d{7,14}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 const STATUS_MESSAGES: Record<string, string> = {
@@ -54,12 +55,11 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const normalizedPhone = phone.replace(/^\+/, "");
 
   const { data: existingProfile, error: profileError } = await admin
     .from("profiles")
     .select("id")
-    .eq("phone", normalizedPhone)
+    .eq("phone", phone)
     .maybeSingle();
 
   if (profileError || !existingProfile) {

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { startVerification } from "@/lib/esmsVerify";
 
-// E.164 : « + » suivi de 8 à 15 chiffres, indicatif pays compris.
-const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+// E.164 sans le « + » : indicatif pays suivi du numéro, 8 à 15 chiffres au
+// total. Format canonique unique dans toute l'app — Supabase et eSMS Verify
+// acceptent tous deux cette forme (vérifié directement contre leurs API).
+const PHONE_PATTERN = /^[1-9]\d{7,14}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 export async function POST(request: Request) {
@@ -25,12 +27,11 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const normalizedPhone = phone.replace(/^\+/, "");
 
   const { data: existingProfile, error: profileError } = await admin
     .from("profiles")
     .select("id")
-    .eq("phone", normalizedPhone)
+    .eq("phone", phone)
     .maybeSingle();
 
   if (profileError) {

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { startVerification } from "@/lib/esmsVerify";
 
-const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+// E.164 sans le « + », format canonique unique dans toute l'app.
+const PHONE_PATTERN = /^[1-9]\d{7,14}$/;
 
 export async function POST(request: Request) {
   let body: { phone?: unknown };
@@ -18,12 +19,11 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const normalizedPhone = phone.replace(/^\+/, "");
 
   const { data: existingProfile, error: profileError } = await admin
     .from("profiles")
     .select("id")
-    .eq("phone", normalizedPhone)
+    .eq("phone", phone)
     .maybeSingle();
 
   if (profileError) {
