@@ -11,7 +11,7 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-type View = "login" | "signupForm" | "signupCode" | "resetPhone" | "resetCode";
+type View = "login" | "signupForm" | "resetPhone" | "resetCode";
 
 const OTP_LENGTH = 6;
 const MIN_PASSWORD_LENGTH = 8;
@@ -19,6 +19,7 @@ const MIN_PASSWORD_LENGTH = 8;
 // unique — Supabase et nos routes API l'acceptent tel quel, sans "+" à
 // rajouter ni à retirer nulle part.
 const PHONE_PATTERN = /^[1-9]\d{7,14}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Tolère un « + » que l'utilisateur aurait quand même tapé (habitude, copier-coller). */
 const cleanPhoneInput = (raw: string) => raw.trim().replace(/^\+/, "");
@@ -32,6 +33,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [view, setView] = useState<View>("login");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
@@ -110,11 +112,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         phone: saisie,
         password,
       });
       if (signInError) throw new Error(t("loginError"));
+
+      // signInWithPassword par téléphone ne vérifie que phone_confirmed_at,
+      // jamais l'email — le verrou est donc à nous de le faire ici.
+      if (!data.user?.email_confirmed_at) {
+        await supabase.auth.signOut();
+        throw new Error(t("emailNotConfirmed"));
+      }
 
       entrerDansLeStudio();
     } catch (err) {
@@ -124,14 +133,26 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  /** Envoie le code de vérification pour une première inscription. */
-  const handleSignupSendCode = async (e: React.FormEvent) => {
+  /**
+   * Inscription en une étape : email + mot de passe créent le compte via
+   * signUp() (qui déclenche l'e-mail de confirmation intégré de Supabase),
+   * puis le téléphone est attaché à ce compte côté serveur. Le compte reste
+   * inutilisable tant que le lien reçu par email n'est pas cliqué — voir le
+   * verrou dans handleLogin.
+   */
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     resetFeedback();
 
     const saisie = cleanPhoneInput(phone);
+    const adresse = email.trim();
+
     if (!PHONE_PATTERN.test(saisie)) {
       setError(t("phoneInvalid"));
+      return;
+    }
+    if (!EMAIL_PATTERN.test(adresse)) {
+      setError(t("emailInvalid"));
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
@@ -145,75 +166,28 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/auth/signup/send", {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: adresse,
+        password,
+        options: {
+          data: { full_name: fullName.trim() || null },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+        },
+      });
+      if (signUpError) throw new Error(signUpError.message || t("sendCodeError"));
+      if (!data.user) throw new Error(t("sendCodeError"));
+
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: saisie, password }),
+        body: JSON.stringify({ userId: data.user.id, phone: saisie }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(resData.error || t("sendCodeError"));
 
       setPhone(saisie);
-      setVerificationId(data.verificationId ?? "");
-      setView("signupCode");
-      setNotice(buildSentNotice(saisie, data.devCode));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  /** Vérifie le code puis crée le compte ; la connexion se fait ensuite ici, côté client. */
-  const handleSignupVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    resetFeedback();
-
-    if (code.trim().length < OTP_LENGTH) {
-      setError(t("codeRequired"));
-      return;
-    }
-
-    setPending(true);
-    try {
-      const res = await fetch("/api/auth/signup/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone,
-          code: code.trim(),
-          password,
-          fullName: fullName.trim() || null,
-          verificationId,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("codeError"));
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({ phone, password });
-      if (signInError) throw signInError;
-
-      entrerDansLeStudio();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const handleSignupResend = async () => {
-    resetFeedback();
-    setPending(true);
-    try {
-      const res = await fetch("/api/auth/signup/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
-      setVerificationId(data.verificationId ?? "");
-      setNotice(buildSentNotice(phone, data.devCode));
+      setView("login");
+      setNotice(t("confirmEmailNotice", { email: adresse }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -323,7 +297,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const titles: Record<View, string> = {
     login: t("title"),
     signupForm: t("signupTitle"),
-    signupCode: t("codeTitle"),
     resetPhone: t("resetTitle"),
     resetCode: t("resetCodeTitle"),
   };
@@ -331,7 +304,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const subtitles: Record<View, string> = {
     login: t("loginSubtitle"),
     signupForm: t("subtitle", { count: SIGNUP_CREDITS }),
-    signupCode: t("codeSubtitle"),
     resetPhone: t("resetSubtitle"),
     resetCode: t("codeSubtitle"),
   };
@@ -461,7 +433,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         {view === "signupForm" && (
-          <form onSubmit={handleSignupSendCode} className="space-y-3 mb-5">
+          <form onSubmit={handleSignup} className="space-y-3 mb-5">
             <div>
               <label htmlFor="auth-name" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t("fullName")}
@@ -489,6 +461,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={t("phonePlaceholder")}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                {t("email")}
+              </label>
+              <input
+                id="auth-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t("emailPlaceholder")}
                 className={inputClass}
               />
             </div>
@@ -525,14 +513,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               />
             </div>
 
-            <p className="text-[11px] leading-relaxed text-zinc-500">{t("optInNotice")}</p>
-
             <button
               type="submit"
               disabled={pending}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
             >
-              {pending ? t("pending") : t("sendCode")}
+              {pending ? t("pending") : t("signupSubmit")}
             </button>
 
             <p className="text-center text-xs text-zinc-400">
@@ -545,53 +531,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 {t("login")}
               </button>
             </p>
-          </form>
-        )}
-
-        {view === "signupCode" && (
-          <form onSubmit={handleSignupVerifyCode} className="space-y-3 mb-5">
-            <div>
-              <label htmlFor="auth-code" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                {t("code")}
-              </label>
-              <input
-                id="auth-code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={OTP_LENGTH}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder={t("codePlaceholder")}
-                className={`${inputClass} text-center text-lg tracking-[0.5em]`}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={pending}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
-            >
-              {pending ? t("pending") : t("confirmCode")}
-            </button>
-
-            <div className="flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => switchView("signupForm")}
-                className="text-zinc-400 hover:text-white font-semibold"
-              >
-                ← {t("changeNumber")}
-              </button>
-              <button
-                type="button"
-                onClick={handleSignupResend}
-                disabled={pending}
-                className="text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 disabled:opacity-50"
-              >
-                {t("resendCode")}
-              </button>
-            </div>
           </form>
         )}
 
