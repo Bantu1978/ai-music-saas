@@ -53,7 +53,8 @@
     "signupError": "Impossible de créer le compte. Réessayez.",
     "emailAlreadyRegistered": "Cet email est déjà utilisé. Connectez-vous, ou utilisez « Mot de passe oublié ».",
     "resetSentNotice": "Lien envoyé à {email}. Cliquez dessus pour choisir un nouveau mot de passe.",
-    "resetError": "Impossible d'envoyer le lien. Réessayez."
+    "resetError": "Impossible d'envoyer le lien. Réessayez.",
+    "emailRateLimit": "Trop d'inscriptions en ce moment. Réessayez dans quelques minutes."
   },
   "HomePage": {
     "badge": "🎁 {count, plural, one {# crédit de génération offert} other {# crédits de génération offerts}} à l'inscription !",

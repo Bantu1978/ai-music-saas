@@ -53,7 +53,8 @@
     "signupError": "Couldn't create the account. Please try again.",
     "emailAlreadyRegistered": "This email is already in use. Sign in, or use \"Forgot password\".",
     "resetSentNotice": "Link sent to {email}. Click it to choose a new password.",
-    "resetError": "Couldn't send the link. Please try again."
+    "resetError": "Couldn't send the link. Please try again.",
+    "emailRateLimit": "Too many sign-ups right now. Please try again in a few minutes."
   },
   "HomePage": {
     "badge": "🎁 {count, plural, one {# free generation credit} other {# free generation credits}} on signup!",

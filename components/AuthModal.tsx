@@ -169,8 +169,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
         },
       });
-      if (signUpError) throw new Error(signUpError.message || t("signupError"));
+      if (signUpError) {
+        throw new Error(
+          signUpError.code === "over_email_send_rate_limit" ? t("emailRateLimit") : t("signupError")
+        );
+      }
       if (!data.user) throw new Error(t("signupError"));
+      // Aucune session ne doit survivre à l'inscription : tant que l'email
+      // n'est pas confirmé, le compte ne se connecte que par handleLogin, qui
+      // fait respecter le verrou. Un signUp() qui en renverrait une (observé
+      // une fois, non reproduit) contournerait sinon toute la vérification.
+      if (data.session) await supabase.auth.signOut();
       // Email déjà inscrit : Supabase ne renvoie pas d'erreur (anti-énumération)
       // mais un faux utilisateur sans identité, dont l'id n'existe nulle part.
       if (data.user.identities?.length === 0) throw new Error(t("emailAlreadyRegistered"));
