@@ -11,9 +11,8 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-type View = "login" | "signupForm" | "resetPhone" | "resetCode";
+type View = "login" | "signupForm" | "resetPhone";
 
-const OTP_LENGTH = 6;
 const MIN_PASSWORD_LENGTH = 8;
 // E.164 sans le « + » : indicatif pays suivi du numéro. Format canonique
 // unique — Supabase et nos routes API l'acceptent tel quel, sans "+" à
@@ -36,8 +35,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [verificationId, setVerificationId] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -69,19 +66,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const switchView = (next: View) => {
     resetFeedback();
-    setCode("");
-    setVerificationId("");
     setView(next);
-  };
-
-  /**
-   * Avec une clé esms_test_, les routes d'envoi renvoient aussi le code en
-   * clair (sandbox = aucun SMS réellement livré) pour pouvoir tester le
-   * parcours sans consommer de crédit SMS. Absent avec la clé esms_live_.
-   */
-  const buildSentNotice = (numero: string, devCode?: unknown) => {
-    const base = t("codeSentNotice", { phone: numero });
-    return typeof devCode === "string" ? `${base} ${t("devCodeNotice", { code: devCode })}` : base;
   };
 
   const handleGoogleLogin = async () => {
@@ -166,6 +151,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
+      // Avant de créer quoi que ce soit : un numéro déjà pris laisserait
+      // sinon un compte par email orphelin, avec son email de confirmation.
+      const check = await fetch("/api/auth/signup/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: saisie }),
+      });
+      const checkData = await check.json().catch(() => ({}));
+      if (!check.ok) throw new Error(checkData.error || t("signupError"));
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: adresse,
         password,
@@ -174,8 +169,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
         },
       });
-      if (signUpError) throw new Error(signUpError.message || t("sendCodeError"));
-      if (!data.user) throw new Error(t("sendCodeError"));
+      if (signUpError) throw new Error(signUpError.message || t("signupError"));
+      if (!data.user) throw new Error(t("signupError"));
+      // Email déjà inscrit : Supabase ne renvoie pas d'erreur (anti-énumération)
+      // mais un faux utilisateur sans identité, dont l'id n'existe nulle part.
+      if (data.user.identities?.length === 0) throw new Error(t("emailAlreadyRegistered"));
 
       const res = await fetch("/api/auth/signup", {
         method: "POST",
@@ -183,7 +181,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         body: JSON.stringify({ userId: data.user.id, phone: saisie }),
       });
       const resData = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(resData.error || t("sendCodeError"));
+      if (!res.ok) throw new Error(resData.error || t("signupError"));
 
       setPhone(saisie);
       setView("login");
@@ -195,8 +193,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  /** Envoie le code de vérification pour réinitialiser un mot de passe oublié. */
-  const handleResetSendCode = async (e: React.FormEvent) => {
+  /**
+   * Mot de passe oublié : un lien part vers l'email du compte (retrouvé par
+   * le numéro côté serveur). Le clic passe par /auth/callback, qui ouvre une
+   * session avant /auth/update-password — rien à saisir ici de plus.
+   */
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     resetFeedback();
 
@@ -208,82 +210,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/auth/password-reset/send", {
+      const res = await fetch("/api/auth/password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: saisie }),
+        body: JSON.stringify({ phone: saisie, locale }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
+      if (!res.ok) throw new Error(data.error || t("resetError"));
 
       setPhone(saisie);
-      setVerificationId(data.verificationId ?? "");
-      setView("resetCode");
-      setNotice(buildSentNotice(saisie, data.devCode));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  /** Vérifie le code, fixe le nouveau mot de passe, puis connecte. */
-  const handleResetVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    resetFeedback();
-
-    if (code.trim().length < OTP_LENGTH) {
-      setError(t("codeRequired"));
-      return;
-    }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(t("passwordTooShort"));
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError(t("passwordMismatch"));
-      return;
-    }
-
-    setPending(true);
-    try {
-      const res = await fetch("/api/auth/password-reset/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone,
-          code: code.trim(),
-          newPassword: password,
-          verificationId,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("codeError"));
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({ phone, password });
-      if (signInError) throw signInError;
-
-      entrerDansLeStudio();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const handleResetResend = async () => {
-    resetFeedback();
-    setPending(true);
-    try {
-      const res = await fetch("/api/auth/password-reset/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || t("sendCodeError"));
-      setVerificationId(data.verificationId ?? "");
-      setNotice(buildSentNotice(phone, data.devCode));
+      setView("login");
+      setNotice(t("resetSentNotice", { email: data.email }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -298,14 +235,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     login: t("title"),
     signupForm: t("signupTitle"),
     resetPhone: t("resetTitle"),
-    resetCode: t("resetCodeTitle"),
   };
 
   const subtitles: Record<View, string> = {
     login: t("loginSubtitle"),
     signupForm: t("subtitle", { count: SIGNUP_CREDITS }),
     resetPhone: t("resetSubtitle"),
-    resetCode: t("codeSubtitle"),
   };
 
   return (
@@ -535,7 +470,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         {view === "resetPhone" && (
-          <form onSubmit={handleResetSendCode} className="space-y-3 mb-5">
+          <form onSubmit={handleReset} className="space-y-3 mb-5">
             <div>
               <label htmlFor="auth-phone" className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 {t("phone")}
@@ -557,7 +492,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               disabled={pending}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
             >
-              {pending ? t("pending") : t("sendCode")}
+              {pending ? t("pending") : t("resetSubmit")}
             </button>
 
             <button
@@ -567,85 +502,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             >
               ← {t("backToLoginLink")}
             </button>
-          </form>
-        )}
-
-        {view === "resetCode" && (
-          <form onSubmit={handleResetVerifyCode} className="space-y-3 mb-5">
-            <div>
-              <label htmlFor="auth-code" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                {t("code")}
-              </label>
-              <input
-                id="auth-code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={OTP_LENGTH}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder={t("codePlaceholder")}
-                className={`${inputClass} text-center text-lg tracking-[0.5em]`}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="auth-new-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                {t("newPassword")}
-              </label>
-              <input
-                id="auth-new-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t("newPasswordPlaceholder")}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="auth-confirm-password" className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                {t("confirmPassword")}
-              </label>
-              <input
-                id="auth-confirm-password"
-                type="password"
-                required
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder={t("confirmPasswordPlaceholder")}
-                className={inputClass}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={pending}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
-            >
-              {pending ? t("pending") : t("resetSubmit")}
-            </button>
-
-            <div className="flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={() => switchView("resetPhone")}
-                className="text-zinc-400 hover:text-white font-semibold"
-              >
-                ← {t("changeNumber")}
-              </button>
-              <button
-                type="button"
-                onClick={handleResetResend}
-                disabled={pending}
-                className="text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 disabled:opacity-50"
-              >
-                {t("resendCode")}
-              </button>
-            </div>
           </form>
         )}
       </div>
